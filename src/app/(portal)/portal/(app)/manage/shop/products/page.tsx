@@ -38,7 +38,7 @@ export default async function ProductsAdminPage() {
                   <td className="px-4 py-3"><Link href={`/manage/shop/products/${p.id}`} className="font-medium hover:text-gold">{p.name}</Link></td>
                   <td className="px-4 py-3 text-muted">{p.variantCount}</td>
                   <td className="px-4 py-3 text-muted">{p.stock} ({p.reserved})</td>
-                  <td className="px-4 py-3"><StatusBadge status={p.is_active ? "approved" : "pending"} className="capitalize" /> <span className="ml-1 text-xs text-muted">{p.is_active ? "Live" : "Hidden"}</span></td>
+                  <td className="px-4 py-3"><StatusBadge status={p.is_active ? "approved" : "pending"} label={p.is_active ? "Live" : "Hidden"} /></td>
                 </tr>
               ))}
             </tbody>

@@ -17,8 +17,9 @@ const LABELS: Record<string, string> = {
 };
 
 /** Status chip used across portal tables. Text always carries the meaning; colour is secondary. */
-export function StatusBadge({ status, className }: { status: string; className?: string }) {
-  const label = LABELS[status] ?? status.replace(/_/g, " ");
+/** `label` overrides the text when the status key is only used for its colour (e.g. Public / Hidden). */
+export function StatusBadge({ status, label: labelOverride, className }: { status: string; label?: string; className?: string }) {
+  const label = labelOverride ?? LABELS[status] ?? status.replace(/_/g, " ");
   return (
     <span className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold capitalize", TONES[status] ?? "border-line text-white", className)}>
       {label}

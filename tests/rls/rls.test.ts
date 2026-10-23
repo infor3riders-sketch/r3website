@@ -308,6 +308,58 @@ describe("event capacity and volunteering rules", () => {
   });
 });
 
+describe("dues and documents", () => {
+  it("members submit and resubmit their own dues but never verify them; paid rows are locked", async () => {
+    await asService();
+    await db.exec(`delete from public.dues_payments`);
+    const period = (await db.query<{ id: string }>(`select id from public.dues_periods limit 1`)).rows[0].id;
+    await as(MEMBER);
+    expect(await fails(`insert into public.dues_payments (period_id, profile_id, amount, reference_no) values ('${period}', '${MEMBER}', 1500, 'GC123')`)).toBeNull();
+    expect(await fails(`update public.dues_payments set reference_no = 'GC999' where profile_id = '${MEMBER}'`)).toBeNull();
+    expect(await fails(`update public.dues_payments set status = 'paid' where profile_id = '${MEMBER}'`)).toMatch(/verification fields/);
+    expect(await fails(`update public.dues_payments set amount = 1 where profile_id = '${MEMBER}'`)).toMatch(/verification fields/);
+    await as(OFFICER);
+    expect(await count(`public.dues_payments where profile_id = '${MEMBER}'`)).toBe(1);
+    expect(await fails(`update public.dues_payments set status = 'rejected', verified_by = '${OFFICER}', reject_reason = 'blurry' where profile_id = '${MEMBER}'`)).toBeNull();
+    await as(MEMBER);
+    expect(await fails(`update public.dues_payments set status = 'pending', reference_no = 'GC555' where profile_id = '${MEMBER}'`)).toBeNull(); // resubmit after rejection
+    await as(OFFICER);
+    expect(await fails(`update public.dues_payments set status = 'paid', verified_by = '${OFFICER}', verified_at = now() where profile_id = '${MEMBER}'`)).toBeNull();
+    await as(MEMBER);
+    expect(await count(`public.dues_payments where profile_id = '${MEMBER}' and status = 'paid'`)).toBe(1);
+    // RLS filters paid rows out of a member's UPDATE entirely, so the tamper attempt changes nothing
+    await db.exec(`update public.dues_payments set reference_no = 'tamper' where profile_id = '${MEMBER}'`);
+    const row = await db.query<{ reference_no: string }>(`select reference_no from public.dues_payments where profile_id = '${MEMBER}'`);
+    expect(row.rows[0].reference_no).toBe("GC555");
+  });
+
+  it("members cannot read other members' dues", async () => {
+    await as(OFFICER);
+    await db.exec(`insert into public.dues_payments (period_id, profile_id, amount, status) select id, '${OFFICER}', amount, 'pending' from public.dues_periods limit 1`);
+    await as(MEMBER);
+    expect(await count(`public.dues_payments where profile_id = '${OFFICER}'`)).toBe(0);
+  });
+
+  it("documents are visible by minimum role and only officers can add them", async () => {
+    await as(OFFICER);
+    await db.exec(`insert into public.documents (title, storage_path, min_role) values
+      ('Bylaws', 'bylaws/a.pdf', 'member'), ('Officer minutes', 'minutes/b.pdf', 'officer')`);
+    await as(ADMIN);
+    await db.exec(`insert into public.documents (title, storage_path, min_role) values ('Admin only', 'finance/c.pdf', 'admin')`);
+    await as(MEMBER);
+    const titles = (await db.query<{ title: string }>(`select title from public.documents order by title`)).rows.map((r) => r.title);
+    expect(titles).toEqual(["Bylaws"]);
+    await as(OFFICER);
+    expect((await db.query<{ title: string }>(`select title from public.documents order by title`)).rows.map((r) => r.title)).toEqual(["Bylaws", "Officer minutes"]);
+    await as(ADMIN);
+    expect(await count("public.documents")).toBe(3);
+    await as(MEMBER);
+    expect(await fails(`insert into public.documents (title, storage_path) values ('x', 'x.pdf')`)).toMatch(/row-level security/i);
+    await as(OFFICER);
+    expect(await fails(`insert into public.documents (title, storage_path, min_role) values ('sneaky', 'y.pdf', 'admin')`)).toMatch(/row-level security/i);
+  });
+});
+
 describe("application review workflow", () => {
   it("officers can move an application through review; anon and members cannot", async () => {
     await as(null);

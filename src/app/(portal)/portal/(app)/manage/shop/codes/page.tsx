@@ -44,7 +44,7 @@ export default async function DiscountCodesPage() {
                   <td className="px-4 py-3 font-mono font-medium">{c.code}</td>
                   <td className="px-4 py-3">{c.kind === "percent" ? `${Number(c.value)}%` : formatPHP(Number(c.value))}{Number(c.min_subtotal) > 0 ? <span className="ml-2 text-xs text-muted">min {formatPHP(Number(c.min_subtotal))}</span> : null}</td>
                   <td className="px-4 py-3 text-muted">{c.uses}{c.max_uses ? ` / ${c.max_uses}` : ""}</td>
-                  <td className="px-4 py-3"><StatusBadge status={c.is_active ? "approved" : "cancelled"} className="capitalize" /> <span className="ml-1 text-xs text-muted">{c.is_active ? "Active" : "Off"}</span></td>
+                  <td className="px-4 py-3"><StatusBadge status={c.is_active ? "approved" : "cancelled"} label={c.is_active ? "Active" : "Off"} /></td>
                   <td className="px-4 py-3">
                     <div className="flex gap-1">
                       <form action={toggleDiscountCode}>

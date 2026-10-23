@@ -130,3 +130,25 @@ export const donationPending = (d: { name: string; amount: number; reference: st
       details([["Reference", d.reference], ["Amount", formatPHP(d.amount)]]),
     text: `Hi ${d.name},\n\nThank you! We will verify your payment (${formatPHP(d.amount)}, ref ${d.reference}) and send an acknowledgement once confirmed.`,
   });
+
+export const duesVerified = (d: { name: string; period: string; amount: number; receiptUrl: string }): RenderedEmail =>
+  renderEmail({
+    subject: `Dues received: ${d.period}`,
+    heading: "Dues received",
+    body: p(`Hi ${d.name},`) + p("Thank you! An officer verified your dues payment.") + details([["Period", d.period], ["Amount", formatPHP(d.amount)]]),
+    text: `Hi ${d.name},
+
+Thank you! An officer verified your dues payment for ${d.period} (${formatPHP(d.amount)}).`,
+    cta: { label: "View receipt", href: d.receiptUrl },
+  });
+
+export const duesRejected = (d: { name: string; period: string; reason?: string; portalUrl: string }): RenderedEmail =>
+  renderEmail({
+    subject: `Dues payment needs attention: ${d.period}`,
+    heading: "Payment needs attention",
+    body: p(`Hi ${d.name},`) + p(`We could not verify your dues payment for ${d.period}.`) + (d.reason ? p(`Reason: ${d.reason}`) : "") + p("Please upload a clearer proof or contact an officer."),
+    text: `Hi ${d.name},
+
+We could not verify your dues payment for ${d.period}.${d.reason ? ` Reason: ${d.reason}` : ""}`,
+    cta: { label: "Open dues", href: d.portalUrl },
+  });

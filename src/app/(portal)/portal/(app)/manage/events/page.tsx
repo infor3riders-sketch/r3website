@@ -47,8 +47,7 @@ export default async function ManageEventsPage() {
                   </td>
                   <td className="px-4 py-3 text-muted">{e.capacity ?? "Unlimited"}</td>
                   <td className="px-4 py-3">
-                    <StatusBadge status={e.is_public ? "approved" : "pending"} className="capitalize" />
-                    <span className="ml-2 text-xs text-muted">{e.is_public ? "Public" : "Members only"}</span>
+                    <StatusBadge status={e.is_public ? "approved" : "pending"} label={e.is_public ? "Public" : "Members only"} />
                   </td>
                 </tr>
               ))}

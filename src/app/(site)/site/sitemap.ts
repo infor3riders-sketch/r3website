@@ -5,7 +5,7 @@ import { getNews, getPrograms, getUpcomingEvents } from "@/server/queries/public
 
 export const revalidate = 3600;
 
-const STATIC = ["/", "/about", "/membership", "/services", "/services/events", "/shop", "/donations", "/contact", "/news"];
+const STATIC = ["/", "/about", "/membership", "/services", "/services/events", "/shop", "/donations", "/contact", "/news", "/gallery"];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [programs, events, news] = await Promise.all([getPrograms(), getUpcomingEvents(200), getNews(200)]);

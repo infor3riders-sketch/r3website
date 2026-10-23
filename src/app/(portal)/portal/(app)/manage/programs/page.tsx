@@ -29,8 +29,7 @@ export default async function ManageProgramsPage() {
                 {p.title}
               </Link>
               <span className="flex items-center gap-2">
-                <StatusBadge status={p.is_public ? "approved" : "pending"} className="capitalize" />
-                <span className="text-xs text-muted">{p.is_public ? "Public" : "Members only"}</span>
+                <StatusBadge status={p.is_public ? "approved" : "pending"} label={p.is_public ? "Public" : "Members only"} />
               </span>
             </li>
           ))}

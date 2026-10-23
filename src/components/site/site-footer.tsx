@@ -1,17 +1,21 @@
 import Link from "next/link";
 import { Mail, MapPin, Phone } from "lucide-react";
 import { NAV_LINKS, ORG } from "@/lib/org";
+import { getSetting } from "@/server/queries/public";
 import { portalUrl } from "@/lib/env";
 import { Logo } from "@/components/ui/logo";
 
 const LEGAL = [
+  { href: "/gallery", label: "Gallery" },
+  { href: "/news", label: "News" },
   { href: "/legal/privacy", label: "Privacy Policy" },
   { href: "/legal/terms", label: "Terms of Use" },
   { href: "/legal/shop-policies", label: "Shipping & Returns" },
   { href: "/legal/donation-policy", label: "Donation Policy" },
 ];
 
-export function SiteFooter() {
+export async function SiteFooter() {
+  const contact = await getSetting("contact");
   return (
     <footer className="panel-textured border-t gold-hairline">
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-4">
@@ -38,21 +42,21 @@ export function SiteFooter() {
           <ul className="space-y-2 text-sm text-muted">
             <li className="flex items-start gap-2">
               <MapPin aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
-              {ORG.address}
+              {contact.address}
             </li>
             <li className="flex items-center gap-2">
               <Mail aria-hidden className="h-4 w-4 shrink-0 text-gold" />
-              <a className="hover:text-white" href={`mailto:${ORG.email}`}>
-                {ORG.email}
+              <a className="hover:text-white" href={`mailto:${contact.email}`}>
+                {contact.email}
               </a>
             </li>
             <li className="flex items-center gap-2">
               <Phone aria-hidden className="h-4 w-4 shrink-0 text-gold" />
-              {ORG.phone}
+              {contact.phone}
             </li>
           </ul>
           <ul className="flex flex-wrap gap-x-4 gap-y-1 pt-1 text-sm text-muted">
-            {ORG.socials.map((s) => (
+            {contact.socials.map((s) => (
               <li key={s.label}>
                 <a href={s.href} rel="noopener noreferrer" target="_blank" className="hover:text-white">
                   {s.label}

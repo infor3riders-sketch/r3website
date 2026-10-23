@@ -1,5 +1,5 @@
 import {
-  Bell, Bike, CalendarCog, CalendarDays, Handshake, FileText, HandHeart, HeartHandshake, LayoutDashboard, ClipboardList,
+  Bell, Bike, Coins, FolderCog, CalendarCog, CalendarDays, Handshake, FileText, HandHeart, HeartHandshake, LayoutDashboard, ClipboardList,
   Receipt, Settings, ShoppingBag, UserCircle, Users, Wallet, type LucideIcon,
 } from "lucide-react";
 
@@ -30,7 +30,9 @@ export const PORTAL_NAV: PortalNavItem[] = [
   { href: "/manage/programs", label: "Manage Programs", icon: Handshake, min: "officer" },
   { href: "/manage/shop", label: "Shop", icon: ShoppingBag, min: "officer" },
   { href: "/manage/donations", label: "Donations", icon: HandHeart, min: "officer" },
-  { href: "/manage/payments", label: "Payments", icon: Receipt, min: "officer" },
+  { href: "/manage/payments", label: "Payments to verify", icon: Receipt, min: "officer" },
+  { href: "/manage/dues", label: "Manage Dues", icon: Coins, min: "officer" },
+  { href: "/manage/documents", label: "Manage Documents", icon: FolderCog, min: "officer" },
   { href: "/admin", label: "Admin", icon: Settings, min: "admin" },
 ];
 

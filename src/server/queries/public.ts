@@ -100,3 +100,31 @@ export async function getNewsPost(slug: string) {
   const rows = await safe<Row<"news_posts">[]>([], (db) => db.from("news_posts").select("*").eq("slug", slug).limit(1));
   return rows[0] ?? null;
 }
+
+// ---------------------------------------------------------------------------
+// Gallery
+// ---------------------------------------------------------------------------
+export interface AlbumSummary extends Row<"gallery_albums"> {
+  cover: string | null;
+  photoCount: number;
+}
+
+export async function getAlbums(): Promise<AlbumSummary[]> {
+  const albums = await safe<Row<"gallery_albums">[]>([], (db) => db.from("gallery_albums").select("*").order("created_at", { ascending: false }));
+  if (albums.length === 0) return [];
+  const photos = await safe<Row<"gallery_photos">[]>([], (db) =>
+    db.from("gallery_photos").select("*").in("album_id", albums.map((a) => a.id)).order("sort_order", { ascending: true }),
+  );
+  return albums.map((a) => {
+    const mine = photos.filter((p) => p.album_id === a.id);
+    return { ...a, cover: mine[0]?.path ?? null, photoCount: mine.length };
+  });
+}
+
+export async function getAlbum(slug: string) {
+  const albums = await safe<Row<"gallery_albums">[]>([], (db) => db.from("gallery_albums").select("*").eq("slug", slug).limit(1));
+  const album = albums[0];
+  if (!album) return null;
+  const photos = await safe<Row<"gallery_photos">[]>([], (db) => db.from("gallery_photos").select("*").eq("album_id", album.id).order("sort_order", { ascending: true }));
+  return { album, photos };
+}

@@ -34,8 +34,8 @@ export default async function CampaignsAdminPage() {
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <StatusBadge status={c.is_public ? "approved" : "pending"} className="capitalize" />
-                <span className="text-xs text-muted">{c.is_public ? "Public" : "Hidden"}{c.is_active ? "" : " · closed"}</span>
+                <StatusBadge status={c.is_public ? "approved" : "pending"} label={c.is_public ? "Public" : "Hidden"} />
+                {c.is_active ? null : <span className="text-xs text-muted">closed</span>}
               </div>
             </li>
           ))}

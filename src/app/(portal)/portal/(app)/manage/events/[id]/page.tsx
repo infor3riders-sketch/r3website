@@ -60,7 +60,7 @@ export default async function ManageEventPage({ params }: { params: Promise<{ id
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
-                  {r.status ? <StatusBadge status={r.status === "going" ? "approved" : r.status === "maybe" ? "pending" : "cancelled"} className="capitalize" /> : null}
+                  {r.status ? <StatusBadge status={r.status === "going" ? "approved" : r.status === "maybe" ? "pending" : "cancelled"} label={r.status === "going" ? "Going" : r.status === "maybe" ? "Maybe" : "Not going"} /> : null}
                   <form action={toggleCheckIn}>
                     <input type="hidden" name="event_id" value={event.id} />
                     <input type="hidden" name="profile_id" value={r.profile_id} />

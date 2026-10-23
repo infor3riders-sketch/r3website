@@ -85,7 +85,7 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
-                  {e.mine ? <StatusBadge status={e.mine.status === "no" ? "cancelled" : e.mine.status === "going" ? "approved" : "pending"} className="capitalize" /> : null}
+                  {e.mine ? <StatusBadge status={e.mine.status === "no" ? "cancelled" : e.mine.status === "going" ? "approved" : "pending"} label={e.mine.status === "no" ? "Not going" : e.mine.status === "going" ? "Going" : "Maybe"} /> : null}
                   <Link href={`/events/${e.slug}`} className={buttonVariants({ variant: e.mine ? "outline" : "gold", size: "md" })}>
                     {e.mine ? "View RSVP" : "RSVP"}
                   </Link>
