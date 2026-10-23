@@ -205,6 +205,45 @@ describe("officer", () => {
   });
 });
 
+describe("member profile modules", () => {
+  it("members manage only their own motorcycles", async () => {
+    await as(MEMBER);
+    expect(await fails(`insert into public.motorcycles (profile_id, make, model) values ('${MEMBER}', 'Honda', 'Click')`)).toBeNull();
+    expect(await fails(`insert into public.motorcycles (profile_id, make, model) values ('${OFFICER}', 'Evil', 'Bike')`)).toMatch(/row-level security/i);
+    await as(OFFICER);
+    expect(await count("public.motorcycles where profile_id = '" + MEMBER + "'")).toBeGreaterThan(0);
+    await as(MEMBER);
+    expect(await fails(`delete from public.motorcycles where profile_id = '${MEMBER}'`)).toBeNull();
+    expect(await count("public.motorcycles")).toBe(0);
+  });
+
+  it("directory shows a member only after they opt in and honours toggles", async () => {
+    await as(MEMBER);
+    await db.exec(`update public.profiles set directory_visible = false where id = '${MEMBER}'`);
+    await as(OFFICER);
+    expect(await count(`public.member_directory where id = '${MEMBER}'`)).toBe(0);
+    await as(MEMBER);
+    await db.exec(`update public.profiles set directory_visible = true, show_phone = true, phone = '0917 111 2222' where id = '${MEMBER}'`);
+    await as(OFFICER);
+    const r = await db.query<{ phone: string | null; email: string | null }>(`select phone, email from public.member_directory where id = '${MEMBER}'`);
+    expect(r.rows[0].phone).toBe("0917 111 2222");
+    expect(r.rows[0].email).toBeNull();
+  });
+
+  it("future-dated announcements stay hidden from members until published; reads are per member", async () => {
+    await as(OFFICER);
+    await db.exec(`insert into public.announcements (id, title, body, published_at) values
+      ('00000000-0000-0000-0000-0000000000d1', 'Soon', 'later', now() + interval '1 day'),
+      ('00000000-0000-0000-0000-0000000000d2', 'Now', 'visible', now() - interval '1 minute')`);
+    await as(MEMBER);
+    expect(await count("public.announcements where id = '00000000-0000-0000-0000-0000000000d1'")).toBe(0);
+    expect(await count("public.announcements where id = '00000000-0000-0000-0000-0000000000d2'")).toBe(1);
+    expect(await fails(`insert into public.announcement_reads (announcement_id, profile_id) values ('00000000-0000-0000-0000-0000000000d2', '${MEMBER}')`)).toBeNull();
+    expect(await fails(`insert into public.announcement_reads (announcement_id, profile_id) values ('00000000-0000-0000-0000-0000000000d2', '${OFFICER}')`)).toMatch(/row-level security/i);
+    expect(await fails(`insert into public.announcements (title, body) values ('x', 'y')`)).toMatch(/row-level security/i);
+  });
+});
+
 describe("application review workflow", () => {
   it("officers can move an application through review; anon and members cannot", async () => {
     await as(null);
