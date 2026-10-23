@@ -3,9 +3,9 @@ import { brandAsset } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 
 /** Winged R3 emblem placeholder, shown until public/brand/logo.(svg|png) is added. */
-function PlaceholderEmblem({ className }: { className?: string }) {
+function PlaceholderEmblem({ className, decorative }: { className?: string; decorative?: boolean }) {
   return (
-    <svg viewBox="0 0 240 120" role="img" aria-label="R3 Riders Organization Incorporated emblem" className={className}>
+    <svg viewBox="0 0 240 120" {...(decorative ? { "aria-hidden": true } : { role: "img", "aria-label": "R3 Riders Organization Incorporated emblem" })} className={className}>
       <defs>
         <linearGradient id="wing" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#ffd37a" />
@@ -25,10 +25,11 @@ function PlaceholderEmblem({ className }: { className?: string }) {
   );
 }
 
-export function Logo({ className, priority = false }: { className?: string; priority?: boolean }) {
+/** `decorative` hides the emblem from assistive tech when adjacent text already names it (e.g. the nav link). */
+export function Logo({ className, priority = false, decorative = false }: { className?: string; priority?: boolean; decorative?: boolean }) {
   const src = brandAsset("logo.svg", "logo.png", "logo.webp");
-  if (!src) return <PlaceholderEmblem className={cn("h-auto w-40", className)} />;
+  if (!src) return <PlaceholderEmblem className={cn("h-auto w-40", className)} decorative={decorative} />;
   return (
-    <Image src={src} alt="R3 Riders Organization Incorporated" width={320} height={160} priority={priority} className={cn("h-auto w-40", className)} />
+    <Image src={src} alt={decorative ? "" : "R3 Riders Organization Incorporated"} width={320} height={160} priority={priority} className={cn("h-auto w-40", className)} />
   );
 }

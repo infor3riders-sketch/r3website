@@ -12,6 +12,8 @@ interface Feature {
   subtitle: string;
   body: string;
   cta: string;
+  /** Hidden text appended to a generic link label ("Learn More") so the link makes sense out of context. */
+  ctaHint?: string;
   href: string;
   tone: "gold" | "blue";
 }
@@ -24,6 +26,7 @@ const FEATURES: Feature[] = [
     subtitle: "Become a Member",
     body: "Join our community & be part of our mission.",
     cta: "Learn More",
+    ctaHint: " about membership",
     href: "/membership",
     tone: "gold",
   },
@@ -86,6 +89,7 @@ export function FeatureCards() {
             <p className="mt-2 flex-1 text-sm text-muted">{f.body}</p>
             <Link href={f.href} className={cn(buttonVariants({ variant: f.tone, size: "md" }), "mt-6 w-full")}>
               {f.cta}
+              {f.ctaHint ? <span className="sr-only">{f.ctaHint}</span> : null}
             </Link>
           </article>
         ))}

@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { History, Images, Newspaper, Settings2, Users } from "lucide-react";
+import { History, Images, Newspaper, Settings2, Tags, Users } from "lucide-react";
 
 export const metadata = { title: "Admin" };
 
 const TOOLS = [
   { href: "/admin/members", icon: Users, title: "Members & roles", text: "Invite members, change roles and status." },
+  { href: "/admin/membership-types", icon: Tags, title: "Membership types", text: "Riding Member, Supporter, Volunteer: fees, requirements, benefits." },
   { href: "/admin/settings", icon: Settings2, title: "Site content & settings", text: "About, officers, contact, membership stats, payment instructions." },
   { href: "/admin/news", icon: Newspaper, title: "News", text: "Write and publish news posts." },
   { href: "/admin/gallery", icon: Images, title: "Gallery", text: "Photo albums for the public site." },

@@ -9,7 +9,7 @@ import { settingDef } from "@/lib/settings-schema";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { fieldErrors } from "@/lib/validators/auth";
-import { albumSchema, inviteSchema, memberUpdateSchema, newsSchema } from "@/lib/validators/admin";
+import { albumSchema, inviteSchema, memberUpdateSchema, membershipTypeSchema, newsSchema } from "@/lib/validators/admin";
 import { EXT_FOR, sniffImage } from "@/lib/validators/profile";
 import { echoValues, type FormState } from "@/server/form-guard";
 
@@ -232,4 +232,38 @@ export async function deletePhoto(fd: FormData): Promise<void> {
   if (photo?.path) await supabase.storage.from("public-media").remove([photo.path]);
   revalidatePath(`/admin/gallery/${albumId.data}`);
   revalidatePath("/site/gallery");
+}
+
+// ---------------------------------------------------------------------------
+// Membership types (shown on the public Membership page and in the application form)
+// ---------------------------------------------------------------------------
+export async function saveMembershipType(_prev: FormState, fd: FormData): Promise<FormState> {
+  const me = await admin();
+  if (!me) return NOT_AUTH;
+  const id = z.uuid().optional().safeParse(fd.get("id") || undefined);
+  const parsed = membershipTypeSchema.safeParse(plain(fd));
+  if (!id.success) return { error: "Invalid request." };
+  if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error), values: echoValues(fd) };
+  const supabase = await createClient();
+  const { error } = id.data
+    ? await supabase.from("membership_types").update(parsed.data).eq("id", id.data)
+    : await supabase.from("membership_types").insert(parsed.data);
+  if (error) {
+    if (error.code === "23505") return { fieldErrors: { slug: "That URL name is already used." }, values: echoValues(fd) };
+    console.error("membership type save failed", error);
+    return { error: "Could not save the membership type." };
+  }
+  refreshSite();
+  revalidatePath("/admin/membership-types");
+  return { ok: true, message: id.data ? "Saved." : "Membership type created." };
+}
+
+export async function deleteMembershipType(fd: FormData): Promise<void> {
+  const me = await admin();
+  const id = z.uuid().safeParse(fd.get("id"));
+  if (!me || !id.success) return;
+  const supabase = await createClient();
+  await supabase.from("membership_types").delete().eq("id", id.data);
+  refreshSite();
+  revalidatePath("/admin/membership-types");
 }

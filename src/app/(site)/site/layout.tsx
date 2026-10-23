@@ -11,6 +11,7 @@ import "./site.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl("/")),
+  icons: { icon: [{ url: "/brand/favicon.svg", type: "image/svg+xml" }, { url: "/favicon.ico", sizes: "48x48" }] },
   title: { default: `${ORG.name} | ${ORG.tagline}`, template: `%s | ${ORG.shortName}` },
   description: `${ORG.mission} A motorcycle club and community charity organization.`,
   openGraph: {
@@ -47,7 +48,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
           }}
         />
         <CartProvider>
-          <SiteNav logo={<Logo className="w-11" priority />} />
+          <SiteNav logo={<Logo className="w-11" priority decorative />} />
           <main id="main" className="flex-1">
             {children}
           </main>

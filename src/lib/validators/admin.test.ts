@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { albumSchema, changedKeys, inviteSchema, memberUpdateSchema, newsSchema } from "@/lib/validators/admin";
+import { albumSchema, changedKeys, inviteSchema, memberUpdateSchema, membershipTypeSchema, newsSchema } from "@/lib/validators/admin";
 
 describe("admin validators", () => {
   it("member updates only accept known roles and statuses", () => {
@@ -26,5 +26,19 @@ describe("admin validators", () => {
   it("diffs audit snapshots ignoring updated_at", () => {
     expect(changedKeys({ role: "member", status: "active", updated_at: "a" }, { role: "officer", status: "active", updated_at: "b" })).toEqual(["role"]);
     expect(changedKeys(null, { id: 1 })).toEqual(["id"]);
+  });
+});
+
+describe("membershipTypeSchema", () => {
+  it("builds a slug and splits benefits into lines", () => {
+    const r = membershipTypeSchema.parse({ name: "Riding Member", fee_amount: "1500", benefits: "Voting rights\n\n Club rides \n" });
+    expect(r.slug).toBe("riding-member");
+    expect(r.benefits).toEqual(["Voting rights", "Club rides"]);
+    expect(r.fee_amount).toBe(1500);
+    expect(r.sort_order).toBe(0);
+  });
+  it("rejects negative fees and missing names", () => {
+    expect(membershipTypeSchema.safeParse({ name: "x", fee_amount: "-1" }).success).toBe(false);
+    expect(membershipTypeSchema.safeParse({ name: "", fee_amount: "0" }).success).toBe(false);
   });
 });

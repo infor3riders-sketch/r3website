@@ -54,3 +54,22 @@ export function changedKeys(oldData: unknown, newData: unknown): string[] {
   const n = (newData && typeof newData === "object" ? newData : {}) as Record<string, unknown>;
   return [...new Set([...Object.keys(o), ...Object.keys(n)])].filter((k) => k !== "updated_at" && JSON.stringify(o[k]) !== JSON.stringify(n[k])).sort();
 }
+
+const intOrZero = z.union([z.literal(""), z.coerce.number().int().min(0).max(999)]).optional().transform((v) => (v === "" || v === undefined ? 0 : Number(v)));
+
+export const membershipTypeSchema = z
+  .object({
+    name: z.string().trim().min(1, "Name is required").max(80),
+    slug: z.string().trim().max(60).optional(),
+    description: optText(500),
+    requirements: optText(1000),
+    fee_amount: z.coerce.number().min(0, "Enter 0 or more").max(1_000_000),
+    benefits: z
+      .string()
+      .optional()
+      .transform((v) => (v ?? "").split(/\r?\n/).map((l) => l.trim()).filter(Boolean).slice(0, 20)),
+    sort_order: intOrZero,
+    is_public: checkbox,
+    is_active: checkbox,
+  })
+  .transform((v) => ({ ...v, slug: slugify(v.slug || v.name) }));

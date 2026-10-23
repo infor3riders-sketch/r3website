@@ -49,7 +49,7 @@ export async function UpcomingEvents() {
               ) : null}
               <p className="mt-3 flex-1 text-sm text-muted">{e.blurb}</p>
               <Link href={`/services/events/${e.slug}`} className={buttonVariants({ variant: "outline", size: "sm", className: "mt-4" })}>
-                Details
+                Details<span className="sr-only"> for {e.title}</span>
               </Link>
             </li>
           ))}

@@ -82,3 +82,9 @@ export async function listAuditTables(): Promise<string[]> {
   const { data } = await supabase.from("audit_log").select("table_name").limit(2000);
   return [...new Set((data ?? []).map((r) => r.table_name).filter((v): v is string => Boolean(v)))].sort();
 }
+
+export async function listMembershipTypesAdmin(): Promise<Row<"membership_types">[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("membership_types").select("*").order("sort_order").order("name");
+  return data ?? [];
+}

@@ -6,7 +6,7 @@ import { FormFeedback, SubmitButton, type FormStateLike } from "@/components/ui/
 import { isoToManilaLocal } from "@/lib/events";
 import type { FieldDef } from "@/lib/settings-schema";
 import type { Row } from "@/lib/supabase/types";
-import { inviteMember, saveAlbum, saveNews, saveSetting, updateMember, uploadAlbumPhoto } from "@/server/admin-actions";
+import { inviteMember, saveAlbum, saveMembershipType, saveNews, saveSetting, updateMember, uploadAlbumPhoto } from "@/server/admin-actions";
 
 const initial: FormStateLike = {};
 const inv = (s: FormStateLike, k: string) => ({ "aria-invalid": Boolean(s.fieldErrors?.[k]), "aria-describedby": s.fieldErrors?.[k] ? `${k}-msg` : undefined }) as const;
@@ -182,6 +182,55 @@ export function PhotoUploadForm({ albumId }: { albumId: string }) {
       </div>
       <FormFeedback state={state} />
       <SubmitButton variant="outline" pendingText="Uploading…">Upload photo</SubmitButton>
+    </form>
+  );
+}
+
+export function MembershipTypeForm({ type }: { type?: Row<"membership_types"> }) {
+  const [state, action] = useActionState(saveMembershipType, initial);
+  const v = state.values;
+  const val = (k: keyof Row<"membership_types">) => v?.[k] ?? (type?.[k] == null ? "" : String(type[k]));
+  const benefits = v?.benefits ?? (type?.benefits ?? []).join("\n");
+  const chk = (k: "is_public" | "is_active") => (v ? v[k] === "on" : type ? type[k] : true);
+  const p = type ? `mt-${type.id}-` : "mt-new-";
+  return (
+    <form action={action} noValidate className="space-y-4">
+      {type ? <input type="hidden" name="id" value={type.id} /> : null}
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Field label="Name" htmlFor={`${p}name`} error={state.fieldErrors?.name} required>
+          <Input id={`${p}name`} name="name" defaultValue={val("name")} required {...inv(state, "name")} />
+        </Field>
+        <Field label="Fee (PHP)" htmlFor={`${p}fee`} error={state.fieldErrors?.fee_amount} required hint="0 for free">
+          <Input id={`${p}fee`} name="fee_amount" type="number" step="0.01" min={0} defaultValue={val("fee_amount") || "0"} required {...inv(state, "fee_amount")} />
+        </Field>
+        <Field label="Sort order" htmlFor={`${p}sort`}>
+          <Input id={`${p}sort`} name="sort_order" type="number" min={0} defaultValue={val("sort_order") || "0"} />
+        </Field>
+        <Field label="URL name" htmlFor={`${p}slug`} error={state.fieldErrors?.slug} hint="Auto-generated if empty">
+          <Input id={`${p}slug`} name="slug" defaultValue={val("slug")} {...inv(state, "slug")} />
+        </Field>
+      </div>
+      <Field label="Description" htmlFor={`${p}desc`}>
+        <Textarea id={`${p}desc`} name="description" rows={2} defaultValue={val("description")} />
+      </Field>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Requirements" htmlFor={`${p}req`}>
+          <Textarea id={`${p}req`} name="requirements" rows={3} defaultValue={val("requirements")} />
+        </Field>
+        <Field label="Benefits (one per line)" htmlFor={`${p}ben`}>
+          <Textarea id={`${p}ben`} name="benefits" rows={3} defaultValue={benefits} />
+        </Field>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="flex min-h-11 items-center gap-3 rounded-md border border-line px-3 text-sm">
+          <input type="checkbox" name="is_public" defaultChecked={Boolean(chk("is_public"))} className="h-5 w-5 accent-[#f2a81d]" /> Show on the public Membership page
+        </label>
+        <label className="flex min-h-11 items-center gap-3 rounded-md border border-line px-3 text-sm">
+          <input type="checkbox" name="is_active" defaultChecked={Boolean(chk("is_active"))} className="h-5 w-5 accent-[#f2a81d]" /> Accepting applications
+        </label>
+      </div>
+      <FormFeedback state={state} />
+      <SubmitButton variant={type ? "outline" : "gold"}>{type ? "Save" : "Create membership type"}</SubmitButton>
     </form>
   );
 }
