@@ -1,13 +1,17 @@
 import type { Metadata } from "next";
+import { LoginForm } from "@/components/portal/auth-forms";
+import { sanitizeNext } from "@/lib/auth/safe-redirect";
+import { isSupabaseConfigured } from "@/lib/env";
 
 export const metadata: Metadata = { title: "Sign in" };
 
-// Replaced by the real login flow in the auth phase.
-export default function LoginPage() {
-  return (
-    <div className="space-y-2 text-center">
-      <h1 className="text-2xl font-semibold uppercase">Sign in</h1>
-      <p className="text-sm text-muted">Member sign-in arrives in the next phase.</p>
-    </div>
-  );
+const NOTICES: Record<string, string> = {
+  link: "That sign-in link is invalid or has expired. Request a new one below.",
+  config: "Sign-in is not configured yet.",
+};
+
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string; error?: string }> }) {
+  const sp = await searchParams;
+  const notice = sp.error ? NOTICES[sp.error] : !isSupabaseConfigured() ? NOTICES.config : undefined;
+  return <LoginForm next={sanitizeNext(sp.next)} notice={notice} />;
 }

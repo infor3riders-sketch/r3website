@@ -25,10 +25,10 @@ type Table<Row, Required extends keyof Row = never> = {
   Relationships: [];
 };
 
-interface Stamps {
+type Stamps = {
   created_at: Ts;
   updated_at: Ts;
-}
+};
 
 export interface Database {
   public: {
@@ -244,15 +244,15 @@ export interface Database {
       };
     };
     Functions: {
-      is_officer: { Args: Record<string, never>; Returns: boolean };
-      is_admin: { Args: Record<string, never>; Returns: boolean };
-      is_member: { Args: Record<string, never>; Returns: boolean };
-      campaign_totals: { Args: Record<string, never>; Returns: { campaign_id: Uuid; raised: number; donors: number }[] };
+      is_officer: { Args: never; Returns: boolean };
+      is_admin: { Args: never; Returns: boolean };
+      is_member: { Args: never; Returns: boolean };
+      campaign_totals: { Args: never; Returns: { campaign_id: Uuid; raised: number; donors: number }[] };
       check_rate_limit: { Args: { p_key: string; p_max: number; p_window_secs: number }; Returns: boolean };
       reserve_stock: { Args: { p_variant: Uuid; p_qty: number }; Returns: boolean };
       cancel_order: { Args: { p_order: Uuid; p_new_status?: OrderStatus }; Returns: boolean };
       mark_order_paid: { Args: { p_order: Uuid; p_verifier?: Uuid }; Returns: boolean };
-      expire_stale_orders: { Args: Record<string, never>; Returns: number };
+      expire_stale_orders: { Args: never; Returns: number };
     };
     Enums: {
       user_role: UserRole;
