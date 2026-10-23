@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { display, sans } from "@/lib/fonts";
 import { ORG } from "@/lib/org";
 import { siteUrl } from "@/lib/env";
+import { CartProvider } from "@/components/site/cart";
 import { SiteNav } from "@/components/site/site-nav";
 import { SiteFooter } from "@/components/site/site-footer";
 import { Logo } from "@/components/ui/logo";
@@ -45,10 +46,12 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
             sameAs: ORG.socials.map((s) => s.href),
           }}
         />
-        <SiteNav logo={<Logo className="w-11" priority />} />
-        <main id="main" className="flex-1">
-          {children}
-        </main>
+        <CartProvider>
+          <SiteNav logo={<Logo className="w-11" priority />} />
+          <main id="main" className="flex-1">
+            {children}
+          </main>
+        </CartProvider>
         <SiteFooter />
       </body>
     </html>

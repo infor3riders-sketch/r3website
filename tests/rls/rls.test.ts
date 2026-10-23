@@ -340,6 +340,42 @@ describe("admin", () => {
   });
 });
 
+describe("donation and rollback functions (service role)", () => {
+  it("release_stock undoes a reservation and never goes negative", async () => {
+    await asService();
+    const v = (await db.query<{ id: string; reserved: number }>(`select id, reserved from public.product_variants limit 1`)).rows[0];
+    await db.exec(`select public.reserve_stock('${v.id}', 3)`);
+    await db.exec(`select public.release_stock('${v.id}', 3)`);
+    await db.exec(`select public.release_stock('${v.id}', 50)`);
+    const after = (await db.query<{ reserved: number }>(`select reserved from public.product_variants where id = '${v.id}'`)).rows[0];
+    expect(after.reserved).toBe(0);
+  });
+
+  it("donations move pending -> paid exactly once and campaign totals count only paid", async () => {
+    await asService();
+    const camp = (await db.query<{ id: string }>(`select id from public.donation_campaigns limit 1`)).rows[0].id;
+    await db.exec(`insert into public.donations (id, campaign_id, donor_name, donor_email, amount)
+      values ('00000000-0000-0000-0000-0000000000b1', '${camp}', 'D', 'd@example.test', 250),
+             ('00000000-0000-0000-0000-0000000000b2', '${camp}', 'E', 'e@example.test', 999)`);
+    const before = (await db.query<{ raised: string }>(`select raised from public.campaign_totals() where campaign_id = '${camp}'`)).rows[0];
+    expect((await db.query<{ ok: boolean }>(`select public.mark_donation_paid('00000000-0000-0000-0000-0000000000b1', '${OFFICER}') as ok`)).rows[0].ok).toBe(true);
+    expect((await db.query<{ ok: boolean }>(`select public.mark_donation_paid('00000000-0000-0000-0000-0000000000b1', '${OFFICER}') as ok`)).rows[0].ok).toBe(false);
+    expect((await db.query<{ ok: boolean }>(`select public.reject_donation('00000000-0000-0000-0000-0000000000b2', '${OFFICER}') as ok`)).rows[0].ok).toBe(true);
+    const after = (await db.query<{ raised: string }>(`select raised from public.campaign_totals() where campaign_id = '${camp}'`)).rows[0];
+    expect(Number(after.raised) - Number(before.raised)).toBe(250);
+    // a rejected donation can no longer be marked paid
+    expect((await db.query<{ ok: boolean }>(`select public.mark_donation_paid('00000000-0000-0000-0000-0000000000b2') as ok`)).rows[0].ok).toBe(false);
+  });
+
+  it("members and anon cannot call verification functions", async () => {
+    await as(MEMBER);
+    expect(await fails(`select public.mark_donation_paid('00000000-0000-0000-0000-0000000000b1')`)).toMatch(/permission denied/i);
+    expect(await fails(`select public.release_stock('00000000-0000-0000-0000-0000000000b1', 1)`)).toMatch(/permission denied/i);
+    await as(null);
+    expect(await fails(`select public.reject_donation('00000000-0000-0000-0000-0000000000b1')`)).toMatch(/permission denied/i);
+  });
+});
+
 describe("stock lifecycle (service role)", () => {
   it("reserves, pays and cancels without going negative", async () => {
     await asService();

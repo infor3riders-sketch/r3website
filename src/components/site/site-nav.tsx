@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Menu, X } from "lucide-react";
+import { Menu, ShoppingCart, X } from "lucide-react";
+import { useCart } from "@/components/site/cart";
 import { NAV_LINKS } from "@/lib/org";
 import { cn } from "@/lib/utils";
 
@@ -19,6 +20,13 @@ function isActive(current: string, href: string) {
 export function SiteNav({ logo }: { logo: React.ReactNode }) {
   const current = normalize(usePathname());
   const [open, setOpen] = useState(false);
+  const { count } = useCart();
+  const cartLink = (
+    <Link href="/shop/cart" aria-label={`Cart, ${count} item${count === 1 ? "" : "s"}`} className="relative flex h-11 w-11 items-center justify-center rounded-md border border-line text-white hover:border-gold hover:text-gold">
+      <ShoppingCart aria-hidden className="h-5 w-5" />
+      {count > 0 ? <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-gold px-1 text-xs font-bold text-black">{count}</span> : null}
+    </Link>
+  );
 
   return (
     <header className="sticky top-0 z-50 border-b gold-hairline bg-black/90 backdrop-blur">
@@ -51,9 +59,12 @@ export function SiteNav({ logo }: { logo: React.ReactNode }) {
           })}
         </ul>
 
+        <div className="hidden lg:block">{cartLink}</div>
+        <div className="flex items-center gap-2 lg:hidden">
+          {cartLink}
         <button
           type="button"
-          className="inline-flex h-11 w-11 items-center justify-center rounded-md border border-line text-white lg:hidden"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-md border border-line text-white"
           aria-expanded={open}
           aria-controls="mobile-drawer"
           aria-label={open ? "Close menu" : "Open menu"}
@@ -61,6 +72,7 @@ export function SiteNav({ logo }: { logo: React.ReactNode }) {
         >
           {open ? <X aria-hidden /> : <Menu aria-hidden />}
         </button>
+        </div>
       </nav>
 
       <div id="mobile-drawer" hidden={!open} className="border-t gold-hairline bg-black lg:hidden">
