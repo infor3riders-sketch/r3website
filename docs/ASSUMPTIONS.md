@@ -19,3 +19,7 @@ Recorded as the build proceeds. Items marked **(security)** override the brief b
 
 ## Contrast (WCAG AA)
 - Black on gold `#F2A81D` and white on royal blue `#1F4FB5` (about 7.4:1) and muted `#B8B8B8` on `#151515` all exceed 4.5:1.
+
+## Organization name
+- The brief says **"R3 Riders Incorporated"**; the About copy supplied later says **"R3 Riders Organization, Inc."** with the motto "Ride with a Cause, Serving with Purpose". The About page uses the supplied copy verbatim; the rest of the site still uses the brief's name and tagline ("Ride. Connect. Support."). **Please confirm the legal name** (it also appears in the footer, metadata, emails and legal pages via `src/lib/org.ts`) and whether both taglines should coexist.
+- About copy lives in `src/lib/about-content.ts` and moves to admin-editable DB content in the content phase. Story, code of conduct, officers and SEC details sections are still to come on this page.
