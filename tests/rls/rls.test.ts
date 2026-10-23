@@ -244,6 +244,70 @@ describe("member profile modules", () => {
   });
 });
 
+describe("event capacity and volunteering rules", () => {
+  const EV = "00000000-0000-0000-0000-0000000000c9";
+  it("enforces event capacity across riders and passengers", async () => {
+    await asService();
+    await db.exec(`delete from public.event_rsvps; insert into public.events (id, slug, title, starts_at, capacity, is_public)
+      values ('${EV}', 'cap-test', 'Cap test', now() + interval '10 days', 3, true)`);
+    await as(MEMBER);
+    expect(await fails(`insert into public.event_rsvps (event_id, profile_id, status, riders, passengers) values ('${EV}', '${MEMBER}', 'going', 1, 1)`)).toBeNull();
+    await as(OFFICER);
+    const full = await fails(`insert into public.event_rsvps (event_id, profile_id, status, riders, passengers) values ('${EV}', '${OFFICER}', 'going', 1, 1)`);
+    expect(full).toMatch(/event_full/);
+    // 'maybe' and 'no' do not consume seats
+    expect(await fails(`insert into public.event_rsvps (event_id, profile_id, status, riders, passengers) values ('${EV}', '${OFFICER}', 'maybe', 1, 1)`)).toBeNull();
+    // moving maybe -> going must also respect capacity
+    expect(await fails(`update public.event_rsvps set status = 'going' where event_id = '${EV}' and profile_id = '${OFFICER}'`)).toMatch(/event_full/);
+    // a member can shrink their own party and free seats
+    await as(MEMBER);
+    expect(await fails(`update public.event_rsvps set passengers = 0 where event_id = '${EV}' and profile_id = '${MEMBER}'`)).toBeNull();
+    await as(OFFICER);
+    expect(await fails(`update public.event_rsvps set status = 'going', riders = 1, passengers = 1 where event_id = '${EV}' and profile_id = '${OFFICER}'`)).toBeNull();
+  });
+
+  it("limits volunteer slots and blocks duplicate or self-awarded hours", async () => {
+    await asService();
+    const prog = (await db.query<{ id: string }>(`select id from public.programs limit 1`)).rows[0].id;
+    await db.exec(`insert into public.volunteer_slots (id, program_id, title, capacity) values ('00000000-0000-0000-0000-0000000000c8', '${prog}', 'Marshals', 1)`);
+    await as(MEMBER);
+    const ins = (uid: string) => `insert into public.volunteer_signups (program_id, slot_id, profile_id, name, email) values ('${prog}', '00000000-0000-0000-0000-0000000000c8', '${uid}', 'n', 'n@example.test')`;
+    expect(await fails(ins(MEMBER))).toBeNull();
+    expect(await fails(ins(MEMBER))).toMatch(/slot_full|duplicate key/);
+    await as(OFFICER);
+    expect(await fails(ins(OFFICER))).toMatch(/slot_full/);
+    await as(MEMBER);
+    expect(await fails(`update public.volunteer_signups set hours = 99 where profile_id = '${MEMBER}'`)).toMatch(/Members cannot change hours/);
+    expect(await fails(`update public.volunteer_signups set status = 'cancelled' where profile_id = '${MEMBER}'`)).toBeNull();
+    await as(OFFICER);
+    expect(await fails(ins(OFFICER))).toBeNull(); // cancelled signup frees the slot
+    expect(await fails(`update public.volunteer_signups set hours = 4, status = 'completed' where profile_id = '${OFFICER}'`)).toBeNull();
+  });
+
+  it("members see seat counts without seeing who else RSVPd; anon cannot call the counters", async () => {
+    await as(MEMBER);
+    const seats = await db.query<{ event_id: string; taken: number }>(`select * from public.event_seats_taken(array['${EV}']::uuid[])`);
+    expect(Number(seats.rows[0]?.taken)).toBeGreaterThan(0);
+    expect(await count(`public.event_rsvps where profile_id <> '${MEMBER}'`)).toBe(0);
+    await as(null);
+    expect(await fails(`select * from public.event_seats_taken(array['${EV}']::uuid[])`)).toMatch(/permission denied/i);
+  });
+
+  it("members cannot check themselves in; officers can", async () => {
+    await as(MEMBER);
+    expect(await fails(`insert into public.event_attendance (event_id, profile_id) values ('${EV}', '${MEMBER}')`)).toMatch(/row-level security/i);
+    await as(OFFICER);
+    expect(await fails(`insert into public.event_attendance (event_id, profile_id, checked_in_by) values ('${EV}', '${MEMBER}', '${OFFICER}')`)).toBeNull();
+    await as(MEMBER);
+    expect(await count(`public.event_attendance where profile_id = '${MEMBER}'`)).toBe(1);
+  });
+
+  it("members can sign their own waiver on an RSVP", async () => {
+    await as(MEMBER);
+    expect(await fails(`update public.event_rsvps set waiver_signed_at = now() where event_id = '${EV}' and profile_id = '${MEMBER}'`)).toBeNull();
+  });
+});
+
 describe("application review workflow", () => {
   it("officers can move an application through review; anon and members cannot", async () => {
     await as(null);

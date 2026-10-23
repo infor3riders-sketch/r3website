@@ -86,7 +86,7 @@ export interface Database {
         "slug" | "title" | "starts_at"
       >;
       event_rsvps: Table<
-        { id: Uuid; event_id: Uuid; profile_id: Uuid; status: RsvpStatus; riders: number; passengers: number } & Stamps,
+        { id: Uuid; event_id: Uuid; profile_id: Uuid; status: RsvpStatus; riders: number; passengers: number; waiver_signed_at: Ts | null } & Stamps,
         "event_id" | "profile_id" | "status"
       >;
       event_interest: Table<
@@ -253,6 +253,8 @@ export interface Database {
       cancel_order: { Args: { p_order: Uuid; p_new_status?: OrderStatus }; Returns: boolean };
       mark_order_paid: { Args: { p_order: Uuid; p_verifier?: Uuid }; Returns: boolean };
       expire_stale_orders: { Args: never; Returns: number };
+      event_seats_taken: { Args: { p_events: Uuid[] }; Returns: { event_id: Uuid; taken: number }[] };
+      slot_seats_taken: { Args: { p_slots: Uuid[] }; Returns: { slot_id: Uuid; taken: number }[] };
     };
     Enums: {
       user_role: UserRole;
