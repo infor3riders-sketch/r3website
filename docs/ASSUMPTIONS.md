@@ -20,6 +20,12 @@ Recorded as the build proceeds. Items marked **(security)** override the brief b
 ## Contrast (WCAG AA)
 - Black on gold `#F2A81D` and white on royal blue `#1F4FB5` (about 7.4:1) and muted `#B8B8B8` on `#151515` all exceed 4.5:1.
 
-## Organization name
-- The brief says **"R3 Riders Incorporated"**; the About copy supplied later says **"R3 Riders Organization, Inc."** with the motto "Ride with a Cause, Serving with Purpose". The About page uses the supplied copy verbatim; the rest of the site still uses the brief's name and tagline ("Ride. Connect. Support."). **Please confirm the legal name** (it also appears in the footer, metadata, emails and legal pages via `src/lib/org.ts`) and whether both taglines should coexist.
-- About copy lives in `src/lib/about-content.ts` and moves to admin-editable DB content in the content phase. Story, code of conduct, officers and SEC details sections are still to come on this page.
+## Organization name and registration
+- Legal name is **"R3 Riders Organization Incorporated"**, taken from the SEC Certificate of Incorporation supplied by the club (Company Reg. No. 2026100273107-46, issued 21 October 2026, non-stock corporation, Revised Corporation Code RA 11232). It supersedes the brief's "R3 Riders Incorporated" and is used in the footer, metadata, emails and legal pages via `src/lib/org.ts`. The supplied About copy abbreviates it as "R3 Riders Organization, Inc." and is kept verbatim.
+- Only the registration facts are published (About > Registration). The certificate image and its QR code are not reproduced on the site.
+- The certificate does not authorize soliciting investments or issuing securities. Membership fees and donations on the site are not investments; the donation page keeps "acknowledgement" wording unless official receipts are enabled (see Donation Policy draft).
+- The registered address is not on the certificate (the printed address is the SEC office) so it remains a placeholder. Tagline "Ride with a Cause, Serving with Purpose" (About) and "Ride. Connect. Support." (brief) coexist; please confirm.
+- About copy lives in `src/lib/about-content.ts`; registration, story, code of conduct, officers and chapters are admin-editable `site_settings` rows (defaults in `src/lib/site-defaults.ts`).
+
+## Membership stats
+- Per-area member counts (Iloilo City 20, Cabatuan 30, Sta. Barbara 15, total 65) were provided by the club as examples and are used as defaults. They are a **declared figure** stored in the public `site_settings` key `membership_stats` (admin-editable in the Admin phase), not computed from profiles, because not every rider has a portal account. **Please confirm the real numbers before launch.**

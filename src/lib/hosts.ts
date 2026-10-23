@@ -50,7 +50,7 @@ export function toInternalPath(kind: SiteKind, pathname: string): string {
 }
 
 /** Portal routes that do not require a session. */
-export const PORTAL_PUBLIC_PATHS = ["/login", "/forgot-password", "/accept-invite", "/auth/callback", "/reset-password"];
+export const PORTAL_PUBLIC_PATHS = ["/robots.txt", "/login", "/forgot-password", "/accept-invite", "/auth/callback", "/reset-password"];
 
 export function isPortalPublicPath(pathname: string): boolean {
   return PORTAL_PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));

@@ -5,6 +5,7 @@ import { siteUrl } from "@/lib/env";
 import { SiteNav } from "@/components/site/site-nav";
 import { SiteFooter } from "@/components/site/site-footer";
 import { Logo } from "@/components/ui/logo";
+import { JsonLd } from "@/components/site/json-ld";
 import "./site.css";
 
 export const metadata: Metadata = {
@@ -32,6 +33,18 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
         >
           Skip to content
         </a>
+        <JsonLd
+          data={{
+            "@context": "https://schema.org",
+            "@type": "NonProfitOrganization",
+            name: ORG.name,
+            url: siteUrl("/"),
+            slogan: ORG.tagline,
+            description: ORG.mission,
+            email: ORG.email,
+            sameAs: ORG.socials.map((s) => s.href),
+          }}
+        />
         <SiteNav logo={<Logo className="w-11" priority />} />
         <main id="main" className="flex-1">
           {children}

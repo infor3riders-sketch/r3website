@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /*
- * Design tokens for R3 Riders Incorporated.
+ * Design tokens for R3 Riders Organization Incorporated.
  * Source of truth: docs/design/home-reference.png (starting values from the brief; refine against the mockup).
  * Each product imports this file and may override tokens on its <body> theme class.
  */

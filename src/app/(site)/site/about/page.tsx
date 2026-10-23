@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Eye, Flag, HeartHandshake, Scale, Users, type LucideIcon } from "lucide-react";
+import { BookOpen, Eye, Flag, HeartHandshake, Landmark, MapPin, ScrollText, Scale, Users, type LucideIcon } from "lucide-react";
 import { ABOUT } from "@/lib/about-content";
 import { buttonVariants } from "@/components/ui/button";
 import { Logo } from "@/components/ui/logo";
+import { getSetting } from "@/server/queries/public";
+import { PLACEHOLDER_NOTE } from "@/lib/site-defaults";
+
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: "About Us",
@@ -27,7 +31,14 @@ function Heading({ icon: Icon, children, id }: { icon: LucideIcon; children: Rea
   );
 }
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const [story, conduct, officers, registration, chapters] = await Promise.all([
+    getSetting("about_story"),
+    getSetting("code_of_conduct"),
+    getSetting("officers"),
+    getSetting("registration"),
+    getSetting("chapters"),
+  ]);
   return (
     <>
       <section className="panel-textured border-b gold-hairline">
@@ -93,6 +104,91 @@ export default function AboutPage() {
             })}
           </ul>
         </section>
+
+
+        <section aria-labelledby="story-h" className="space-y-4">
+          <Heading icon={BookOpen} id="story-h">
+            Our Story
+          </Heading>
+          <p className="whitespace-pre-line text-lg leading-relaxed text-white/90">{story}</p>
+        </section>
+
+        <section aria-labelledby="conduct-h" className="space-y-4">
+          <Heading icon={ScrollText} id="conduct-h">
+            Code of Conduct
+          </Heading>
+          <ol className="list-decimal space-y-2 pl-6 text-white/90 marker:text-gold">
+            {conduct.map((c) => (
+              <li key={c}>{c}</li>
+            ))}
+          </ol>
+        </section>
+
+        <section aria-labelledby="officers-h" className="space-y-4">
+          <Heading icon={Users} id="officers-h">
+            Officers &amp; Board
+          </Heading>
+          {officers.length === 0 ? (
+            <p className="rounded-lg border border-dashed border-line p-5 text-muted">Our officers will be introduced here. {PLACEHOLDER_NOTE}</p>
+          ) : (
+            <ul className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+              {officers.map((o) => (
+                <li key={`${o.name}-${o.role}`} className="rounded-lg border border-line bg-panel p-4">
+                  <p className="text-lg font-semibold text-white">{o.name}</p>
+                  <p className="text-sm uppercase tracking-wider text-gold">{o.role}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section aria-labelledby="reg-h" className="space-y-4">
+          <Heading icon={Landmark} id="reg-h">
+            Registration
+          </Heading>
+          <dl className="grid gap-3 rounded-lg border border-line bg-panel p-5 sm:grid-cols-2">
+            <div>
+              <dt className="text-sm text-muted">Registered name</dt>
+              <dd className="text-white">{registration.legal_name}</dd>
+            </div>
+            <div>
+              <dt className="text-sm text-muted">SEC registration no.</dt>
+              <dd className="text-white">{registration.sec_registration_no}</dd>
+            </div>
+            <div>
+              <dt className="text-sm text-muted">Date registered</dt>
+              <dd className="text-white">{registration.date_registered}</dd>
+            </div>
+            <div>
+              <dt className="text-sm text-muted">Corporation type</dt>
+              <dd className="text-white">{registration.corporation_type}</dd>
+            </div>
+            <div>
+              <dt className="text-sm text-muted">Registered with</dt>
+              <dd className="text-white">{registration.registered_with}</dd>
+            </div>
+            <div>
+              <dt className="text-sm text-muted">Registered address</dt>
+              <dd className="text-white">{registration.registered_address}</dd>
+            </div>
+          </dl>
+        </section>
+
+        {chapters.length > 0 ? (
+          <section aria-labelledby="chapters-h" className="space-y-4">
+            <Heading icon={MapPin} id="chapters-h">
+              Chapters
+            </Heading>
+            <ul className="grid gap-3 sm:grid-cols-2">
+              {chapters.map((c) => (
+                <li key={c.name} className="rounded-lg border border-line bg-panel p-4">
+                  <p className="font-semibold text-white">{c.name}</p>
+                  <p className="text-sm text-muted">{c.area}</p>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
 
         <section className="flex flex-col items-center gap-4 text-center">
           <p className="font-serif text-2xl italic text-white">Ride. Reach. Respond.</p>

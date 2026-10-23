@@ -23,7 +23,7 @@ export function SiteNav({ logo }: { logo: React.ReactNode }) {
   return (
     <header className="sticky top-0 z-50 border-b gold-hairline bg-black/90 backdrop-blur">
       <nav aria-label="Primary" className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
-        <Link href="/" className="flex items-center gap-3" aria-label="R3 Riders Incorporated home" onClick={() => setOpen(false)}>
+        <Link href="/" className="flex items-center gap-3" aria-label="R3 Riders Organization Incorporated home" onClick={() => setOpen(false)}>
           {logo}
           <span className="hidden font-display text-lg font-semibold uppercase tracking-widest text-white sm:block">
             R3 Riders

@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 /** Winged R3 emblem placeholder, shown until public/brand/logo.(svg|png) is added. */
 function PlaceholderEmblem({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 240 120" role="img" aria-label="R3 Riders Incorporated emblem" className={className}>
+    <svg viewBox="0 0 240 120" role="img" aria-label="R3 Riders Organization Incorporated emblem" className={className}>
       <defs>
         <linearGradient id="wing" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#ffd37a" />
@@ -29,6 +29,6 @@ export function Logo({ className, priority = false }: { className?: string; prio
   const src = brandAsset("logo.svg", "logo.png", "logo.webp");
   if (!src) return <PlaceholderEmblem className={cn("h-auto w-40", className)} />;
   return (
-    <Image src={src} alt="R3 Riders Incorporated" width={320} height={160} priority={priority} className={cn("h-auto w-40", className)} />
+    <Image src={src} alt="R3 Riders Organization Incorporated" width={320} height={160} priority={priority} className={cn("h-auto w-40", className)} />
   );
 }

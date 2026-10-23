@@ -3,7 +3,8 @@
  * once Phase 3 lands, editable values move to the `site_settings` table.
  */
 export const ORG = {
-  name: "R3 Riders Incorporated",
+  // Legal name exactly as on the SEC Certificate of Incorporation (Company Reg. No. 2026100273107-46).
+  name: "R3 Riders Organization Incorporated",
   shortName: "R3 Riders",
   tagline: "Ride. Connect. Support.",
   mission: "Empowering Communities Through Brotherhood & Service.",

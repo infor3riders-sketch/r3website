@@ -1,4 +1,4 @@
-# R3 Riders Incorporated: Website + Member Portal
+# R3 Riders Organization Incorporated: Website + Member Portal
 
 One Next.js app, one Supabase project, one Vercel project, two products selected by hostname:
 
