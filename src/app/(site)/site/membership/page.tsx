@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Check } from "lucide-react";
 import { PageHero, Section } from "@/components/site/page-hero";
 import { MembershipStats } from "@/components/site/membership-stats";
+import { ApplicationForm } from "@/components/site/application-form";
 import { EmptyState } from "@/components/ui/states";
 import { formatPHP } from "@/lib/format";
 import { getMembershipTypes } from "@/server/queries/public";
@@ -73,7 +74,7 @@ export default async function MembershipPage() {
 
       <Section id="apply" title="Apply now">
         <div className="gold-hairline rounded-lg border bg-panel p-6 shadow-card">
-          <p className="text-muted">The application form is being finalized.</p>
+          <ApplicationForm types={types.filter((t) => t.is_active).map((t) => ({ id: t.id, name: t.name }))} />
         </div>
       </Section>
     </>

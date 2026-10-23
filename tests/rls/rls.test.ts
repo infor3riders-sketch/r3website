@@ -205,6 +205,28 @@ describe("officer", () => {
   });
 });
 
+describe("application review workflow", () => {
+  it("officers can move an application through review; anon and members cannot", async () => {
+    await as(null);
+    await db.exec(`insert into public.applications (id, full_name, email, phone, agreed_rules, consent_privacy)
+      values ('00000000-0000-0000-0000-0000000000e1', 'Rev Test', 'rev@example.test', '1', true, true)`);
+    await as(OFFICER);
+    expect(await count("public.applications where id = '00000000-0000-0000-0000-0000000000e1'")).toBe(1);
+    expect(await fails(`update public.applications set status = 'approved', reviewed_by = '${OFFICER}', reviewed_at = now() where id = '00000000-0000-0000-0000-0000000000e1'`)).toBeNull();
+    await as(null);
+    await db.exec(`update public.applications set status = 'rejected' where id = '00000000-0000-0000-0000-0000000000e1'`).catch(() => undefined);
+    await as(OFFICER);
+    const r = await db.query<{ status: string }>(`select status from public.applications where id = '00000000-0000-0000-0000-0000000000e1'`);
+    expect(r.rows[0].status).toBe("approved");
+    await as(MEMBER);
+    expect(await count("public.applications")).toBe(0);
+  });
+  it("approval writes an audit entry visible to admins", async () => {
+    await as(ADMIN);
+    expect(await count("public.audit_log where table_name = 'applications' and action = 'update'")).toBeGreaterThan(0);
+  });
+});
+
 describe("admin", () => {
   it("can change roles and read the audit log", async () => {
     await as(ADMIN);
