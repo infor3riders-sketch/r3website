@@ -1,0 +1,13 @@
+@import "../../../styles/base.css";
+
+/*
+ * Member portal theme: same brand colours and logo, calmer and denser.
+ * Overrides are scoped to body.theme-portal so utilities keep reading the same token names.
+ */
+body.theme-portal {
+  --color-ink: #121214;
+  --color-panel: #1a1a1d;
+  --color-panel-raised: #222226;
+  --color-line: #2f2f34;
+  font-size: 15px;
+}

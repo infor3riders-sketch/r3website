@@ -1,0 +1,241 @@
+# Claude Code Prompt: R3 Riders Incorporated Website + Member Portal
+
+Setup before pasting:
+1. Create the project folder and save the design mockup image as `docs/design/home-reference.png`.
+2. Open Claude Code in that folder and paste everything below the line.
+3. Fill in the [BRACKETED] placeholders, or leave them and Claude Code will assume defaults and list them in `docs/ASSUMPTIONS.md`.
+
+---
+
+## Role and goal
+
+You are building a production-ready web platform for **R3 Riders Incorporated**, a motorcycle club and community/charity organization based in **[CITY, PROVINCE, PHILIPPINES]**.
+
+Tagline: **"Ride. Connect. Support."**
+Mission line: **"Empowering Communities Through Brotherhood & Service."**
+Closing line: **"Together, We Ride for a Better Tomorrow."**
+
+Two separate products ship from ONE codebase, ONE Vercel project, and ONE Supabase project:
+
+1. **Public website** at `[www.r3riders.org]`: recruitment, services/charity, merchandise shop, donations
+2. **Member portal** at `[portal.r3riders.org]`: private, login required, for members, officers and admins
+
+They must feel like separate products: different layouts, navigation, route trees and auth rules. They share only the codebase, the database, and a small shared utility/UI layer.
+
+**The attached design mockup (`docs/design/home-reference.png`) is the PRIMARY visual basis for the public website.** View it first, and match its look, layout, hierarchy and mood closely. Details are in the Design section below.
+
+Before writing code, read this entire brief, view the mockup, then post a short plan (file tree, DB schema summary, build order) and start building. Do not stop to ask questions unless truly blocked. Record assumptions in `docs/ASSUMPTIONS.md`.
+
+## Tech stack (fixed)
+
+- Next.js (latest stable, App Router) + TypeScript (strict)
+- Tailwind CSS + shadcn/ui (heavily themed to the mockup)
+- Supabase: Postgres, Auth, Storage, Row Level Security (one project only)
+- `@supabase/ssr` for cookie-based auth
+- Zod for validation, React Hook Form for forms
+- Deployed on Vercel (one project, two domains)
+- pnpm
+
+## Architecture: one app, two "sites" via host-based routing
+
+Single Next.js app with host-based routing in `middleware.ts`:
+
+- Public host requests rewrite to `app/(site)/...`
+- Portal host requests rewrite to `app/(portal)/...`
+- Local dev: `localhost:3000` is the public site; `portal.localhost:3000` is the portal. Document in README.
+- Hostnames come from env vars (`NEXT_PUBLIC_SITE_HOST`, `NEXT_PUBLIC_PORTAL_HOST`).
+- Cross-access blocked: portal routes unreachable on the public host and vice versa (404).
+- Separate root layouts, nav and theme tokens per route group. No imports from `(portal)` into `(site)` or the reverse.
+
+```
+src/
+  app/
+    (site)/            # public website
+    (portal)/          # member portal
+    api/               # webhooks, cron
+  components/
+    ui/                # shared primitives
+    site/
+    portal/
+  lib/
+    supabase/          # browser, server, middleware clients
+    auth/              # role helpers, guards
+    payments/          # PaymentProvider interface + adapters
+    validators/        # zod schemas
+  server/              # server actions, queries
+  emails/
+supabase/
+  migrations/
+  seed.sql
+docs/
+  design/home-reference.png
+```
+
+## Public website
+
+Top navigation (match mockup exactly, in this order): **Home, About Us, Membership, Services, Shop, Donations, Contact Us**. Active item has a gold underline/accent. Nav is dark, sticky, with a mobile hamburger drawer.
+
+### Home (replicate the mockup)
+- Full-width hero: sunset mountain-road riding photo with riders from behind, dark gradient overlay for legibility
+- R3 Riders Incorporated winged emblem/logo, centered above the headline (use the logo from `public/brand/` if present; otherwise create a placeholder component and note it in ASSUMPTIONS.md)
+- Headline "Ride. Connect. Support." and the mission line beneath it
+- Three hero CTAs: **Join Us** (gold button), **Donate Now** (dark button with gold/white border), **Shop Merchandise** (royal blue button)
+- Row of four feature cards on a dark textured panel, each with icon, title, subtitle, short description and button:
+  1. **Membership**: "Become a Member", "Join our community & be part of our mission." Button **Learn More** (gold)
+  2. **Our Services**: "Charity Rides & Outreach", "Making a difference, one ride at a time." Button **View Programs** (blue)
+  3. **Merchandise**: "Shop Our Gear", "Support our cause with R3 Riders merch." Button **Visit Shop** (blue)
+  4. **Donate**: "Support Our Cause", "Help us make an impact today." Button **Donate Now** (gold)
+- Footer band: italic tagline "Together, We Ride for a Better Tomorrow" with a bullet row: **Community Events • Volunteer Programs • Cooperative Initiatives**
+- Below the mockup's fold, add: upcoming events strip, latest news, sponsors/partners, and a full site footer (links, socials, contact, legal)
+
+### About Us
+Story, mission/vision/values, code of conduct, officers/board, SEC/registration details placeholder, chapters if any.
+
+### Membership
+Explains membership types (configurable in DB: e.g. Riding Member, Associate/Supporter, Volunteer), requirements, fees, benefits. Contains the **multi-step application form** (personal info, riding experience, motorcycle details, references, agreement to rules, optional volunteer interests). Submits as a pending application. Spam protection: honeypot plus rate limiting; Cloudflare Turnstile optional via env.
+
+### Services
+Programs and outreach: Charity Rides, community outreach, volunteer programs, cooperative initiatives. Each program has a detail page (description, photos, schedule, how to join or volunteer). Include a **volunteer sign-up form**. Include an upcoming **Events** listing with detail pages (date, meeting point, route, requirements, RSVP interest for the public where enabled).
+
+### Shop (merchandise)
+- Product listing and detail pages with image gallery, size/color variants, price in PHP, stock tracking
+- Cart, checkout (name, contact, delivery address, notes), order confirmation page and email
+- Payments through the `PaymentProvider` abstraction (see Payments)
+- Order status visible via a secure order-lookup link sent by email
+- Optional member-only pricing or discount, applied when a member is logged in on the portal side (v1: implement a simple discount code mechanism; member pricing is v2)
+
+### Donations
+- Donation page: one-time donation with preset amounts plus custom amount, optional campaign selector (e.g. "Charity Ride 2026"), donor name/email, anonymous option, message
+- Campaign pages with goal and progress bar (only counting verified donations)
+- Acknowledgement email. Donation receipt generation (PDF) is a nice-to-have; note donation receipts for tax purposes need confirmation of the organization's accreditation status, so keep it as an "acknowledgement" unless the admin enables official receipts in settings
+- Transparency section showing how funds are used (admin-editable content)
+
+### Contact Us
+Form storing messages in DB, plus contact details, socials and map embed placeholder.
+
+### Legal
+Privacy policy, terms, shop policies (shipping/returns), donation policy (placeholder content, flagged for review by the organization).
+
+### Site-wide requirements
+SEO (metadata, OpenGraph, sitemap.xml, robots.txt, structured data for organization and events), mobile-first responsive, WCAG AA contrast (verify gold-on-dark and white-on-blue buttons), image optimization via `next/image`, Lighthouse 90+. Public pages read only rows flagged public.
+
+## Member portal (private)
+
+Everything requires login except `/login`, `/forgot-password`, `/accept-invite`. Supabase email and password plus magic link. **No open sign-up.** Members are created by admin invite, or when an approved application is converted to an account.
+
+Roles (enum): `member`, `officer`, `admin`.
+
+Modules:
+1. **Dashboard**: announcements, next ride/event, my RSVPs, dues status, volunteer opportunities
+2. **My Profile**: name, photo, contact, emergency contact, blood type, road name/nickname, motorcycles (multiple), directory privacy toggles
+3. **Member Directory**: searchable, respects privacy toggles
+4. **Events and Rides**: calendar and list, RSVP (going/maybe/no, riders and passengers), capacity limits, officer check-in, ride waivers
+5. **Volunteer and Programs**: browse programs, sign up for volunteer slots, officers see volunteer rosters and hours
+6. **Announcements**: officers post, members read, unread indicators
+7. **Dues and Payments**: dues periods, payment status per member, proof upload (private bucket), officer verify/reject, receipts
+8. **Documents**: bylaws, forms, minutes (private, role-gated)
+9. **Applications (officer/admin)**: review queue, approve/reject/request info, notes, approve-and-invite
+10. **Shop Management (officer/admin)**: products, variants, inventory, orders, fulfillment status, discount codes
+11. **Donations Management (officer/admin)**: donations list, verification of manual payments, campaigns, goals, donor export (CSV, access logged)
+12. **Admin**: members and roles, content for public site (news, gallery, programs, events, About/officers), site settings, audit log
+
+## Payments
+
+Build a `PaymentProvider` interface in `src/lib/payments/` used by both the Shop and Donations.
+
+- **v1 default: manual provider.** Checkout/donation shows the organization's payment instructions (GCash number/QR, bank details from `site_settings`), collects a reference number and optional proof-of-payment image upload, and creates the record as `pending`. Officers verify in the portal, which flips status to `paid` and triggers emails and stock decrement.
+- **Gateway-ready:** also scaffold a `paymongo` adapter (GCash, Maya, cards) behind env flag `PAYMENT_PROVIDER=manual|paymongo`, including a signed webhook route handler that marks orders/donations paid. Keep it disabled by default and document what keys are needed.
+- Never store card data. Never trust client-reported payment success; status changes happen only server-side (officer action or verified webhook).
+- Stock is reserved at order creation and released if the order is cancelled or expires.
+
+## Supabase (one project)
+
+- All schema changes as SQL in `supabase/migrations/` via Supabase CLI. No dashboard-only changes.
+- Core tables (adjust as needed): `profiles`, `motorcycles`, `membership_types`, `applications`, `events`, `event_rsvps`, `event_attendance`, `programs`, `volunteer_signups`, `announcements`, `announcement_reads`, `news_posts`, `gallery_albums`, `gallery_photos`, `dues_periods`, `dues_payments`, `documents`, `products`, `product_variants`, `product_images`, `orders`, `order_items`, `discount_codes`, `donation_campaigns`, `donations`, `payments`, `contact_messages`, `audit_log`, `site_settings`.
+- **RLS on every table**, with explicit policies:
+  - anon: read rows where `is_public = true` (events, programs, news, gallery, active products, active campaigns); INSERT only into `applications`, `contact_messages`, `volunteer_signups`, and via server-side routes for `orders` and `donations`. Orders and donations are never readable by anon; lookups happen through signed tokens in server code.
+  - members: own profile, RSVPs, payments, volunteer signups; directory per privacy flags
+  - officers: manage events, programs, announcements, attendance, applications, payment verification, shop, donations
+  - admins: everything, including role changes
+  - A user can never escalate their own role (policy or trigger)
+- Helper functions `is_officer()` and `is_admin()` (security definer, stable)
+- Triggers: create `profiles` row on `auth.users` insert, `updated_at`, audit logging on sensitive tables
+- Storage buckets: `public-media` (site images, product images), `member-avatars`, `payment-proofs` (private), `documents` (private). Enforce size limits and MIME types.
+- Generate TypeScript types (`supabase gen types`) and use them everywhere.
+- Service role key only in server-side code and only where RLS bypass is truly required (invites, webhooks, order/donation creation for guests).
+- `seed.sql` with demo data, clearly marked dev-only.
+
+## Design system (derived from the mockup; treat as the source of truth)
+
+**Mood:** dark, premium, brotherhood and open-road. Black/charcoal textured panels, warm sunset hero photography, gold and royal-blue accents, white type.
+
+Define these as Tailwind/CSS tokens (sample from the mockup image and refine; these are starting values):
+- Background: near-black `#0B0B0C`; panel charcoal `#151515` with subtle leather/grain texture overlay; borders thin gold/dark-gold at low opacity
+- Gold (primary accent, "Join Us", "Learn More", "Donate Now" on cards, active nav underline): approx `#F2A81D`, hover slightly lighter, dark text on gold
+- Royal blue (secondary action, "Shop Merchandise", "View Programs", "Visit Shop"): approx `#1F4FB5`, white text, subtle lighter-blue border
+- Text: white `#FFFFFF`, muted `#B8B8B8`
+- Dark outlined button: black fill, light border, white text ("Donate Now" in hero)
+
+**Typography:** a strong, slightly condensed display face for headings (e.g. Oswald, Barlow Condensed or Teko) and a clean sans for body (Inter). Headline "Ride. Connect. Support." in white with the period-separated rhythm; italic serif/italic sans for the "Together, We Ride..." line.
+
+**Components to build to match the mockup:** sticky nav with gold active underline; hero with overlay and centered emblem; button variants (gold, blue, dark-outline) with subtle bevel/gradient and soft shadow; feature cards (icon, title, bold subtitle, muted body, button) with a thin colored bottom edge (gold or blue per card); textured dark panel; footer band with gold star bullets.
+
+**Icons:** the mockup uses illustrated gold icons (helmet, hands with heart, cap, hands holding heart). Use matching lucide icons in gold as placeholders, with a documented slot to swap in custom artwork under `public/brand/icons/`.
+
+**Imagery:** use the hero from the mockup as `public/brand/hero.jpg` if provided; otherwise use a placeholder and flag it. Do not scrape or fabricate photos of real people.
+
+**Portal styling:** same brand colors and logo, but calmer: charcoal background, higher information density, readable tables, large tap targets (members will use it on mobile at rides). Gold for primary actions, blue for secondary.
+
+**Responsiveness:** four-card row collapses to 2x2 then single column; hero CTAs stack on mobile; nav becomes a drawer.
+
+## Security and quality
+
+- Validate all input with Zod on the server (actions and route handlers)
+- Auth checks in middleware AND in each server action/query; UI hiding is not security
+- Rate-limit public form and checkout endpoints
+- `.env.example` listing: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SITE_HOST`, `NEXT_PUBLIC_PORTAL_HOST`, `PAYMENT_PROVIDER`, PayMongo keys, email provider keys, Turnstile keys
+- Treat personal data carefully (emergency contacts, blood type, phones, donor info). Minimize exposure; log exports. Mention Philippine Data Privacy Act compliance basics in `docs/PRIVACY-NOTES.md` (consent text on forms, data retention, a contact for data requests), flagged as needing review by the organization.
+- Timezone `Asia/Manila`; currency PHP; timestamps as `timestamptz`
+- Error, loading and empty states on every page
+- Tests: Vitest for validators, role helpers, price/stock logic; Playwright smoke tests for (1) application submit, (2) checkout with manual payment, (3) donation submit, (4) member login and RSVP, (5) member blocked from admin routes, (6) public host cannot reach portal routes. Add an RLS test script (SQL or pgTAP) proving the key policies.
+
+## Email
+
+Resend (or Supabase SMTP). Templates in `src/emails/`, styled in brand colors: invites, application received/approved/rejected, password reset, order confirmation and status updates, donation acknowledgement, volunteer sign-up confirmation.
+
+## Deployment (one Vercel project)
+
+- One Vercel project with both domains attached
+- `docs/DEPLOY.md`: Supabase project creation and migration push, Vercel env vars, DNS for both hosts, Supabase Auth redirect URLs (site and portal), creating the first admin, webhook setup for the payment gateway (when enabled), post-deploy checklist
+
+## Build order (commit after each step)
+
+1. Scaffold, tooling, env handling, host-based middleware, two route groups with distinct layouts, design tokens and base components from the mockup
+2. **Public Home page matching the mockup** (pixel-faithful pass, desktop and mobile), plus nav and footer. Take a screenshot comparison against `docs/design/home-reference.png` and refine before moving on
+3. Supabase migrations (schema, RLS, triggers, storage), types, seed
+4. Auth flows and role guards for the portal
+5. Remaining public pages with real data (About, Membership, Services/Events, Contact, Legal)
+6. Application form, officer review queue, approve-and-invite
+7. Portal: profile, motorcycles, directory, announcements
+8. Events, RSVPs, attendance, volunteer sign-ups
+9. Payments abstraction, Shop (public) plus shop management (portal), orders and stock
+10. Donations (public) plus campaigns and verification (portal)
+11. Dues and documents, admin tools, audit log, site settings
+12. Tests, accessibility and performance pass, README, DEPLOY and PRIVACY docs
+
+## Definition of done
+
+- `pnpm dev` runs both sites locally with documented hostnames
+- `pnpm build`, `pnpm lint`, `pnpm typecheck` and tests pass
+- Public Home visibly matches the mockup in layout, colors, buttons and copy
+- RLS verified for anon, member, officer and admin
+- Docs complete: `README.md`, `docs/DEPLOY.md`, `docs/ASSUMPTIONS.md`, `docs/PRIVACY-NOTES.md`
+- Final summary lists what was built, assumed, and left for v2 (live payment gateway rollout, recurring donations, member-tier shop pricing, official donation receipts, ride tracking, mobile app)
+
+## Ground rules
+
+- Work autonomously through the build order; keep the repo runnable at every commit
+- Prefer simple, maintainable solutions
+- Never commit secrets or `.env` files
+- If a requirement conflicts with security, choose security and note it in ASSUMPTIONS.md
+- Run typecheck, lint and tests at the end of each phase
