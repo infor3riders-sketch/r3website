@@ -30,6 +30,6 @@ export function Logo({ className, priority = false, decorative = false }: { clas
   const src = brandAsset("logo.svg", "logo.png", "logo.webp");
   if (!src) return <PlaceholderEmblem className={cn("h-auto w-40", className)} decorative={decorative} />;
   return (
-    <Image src={src} alt={decorative ? "" : "R3 Riders Organization Incorporated"} width={320} height={160} priority={priority} className={cn("h-auto w-40", className)} />
+    <Image src={src} alt={decorative ? "" : "R3 Riders Organization Incorporated"} width={640} height={640} priority={priority} className={cn("h-auto w-40", className)} />
   );
 }

@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   title: { default: "Member Portal | R3 Riders", template: "%s | R3 Riders Portal" },
   // Private product: keep it out of search engines.
   robots: { index: false, follow: false },
-  icons: { icon: [{ url: "/brand/favicon.svg", type: "image/svg+xml" }, { url: "/favicon.ico", sizes: "48x48" }] },
+  icons: { icon: [{ url: "/favicon.ico", sizes: "48x48" }, { url: "/brand/icon.png", type: "image/png", sizes: "512x512" }], apple: "/brand/apple-icon.png" },
 };
 
 export const viewport: Viewport = { themeColor: "#121214" };

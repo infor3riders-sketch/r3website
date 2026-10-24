@@ -11,7 +11,7 @@ import "./site.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl("/")),
-  icons: { icon: [{ url: "/brand/favicon.svg", type: "image/svg+xml" }, { url: "/favicon.ico", sizes: "48x48" }] },
+  icons: { icon: [{ url: "/favicon.ico", sizes: "48x48" }, { url: "/brand/icon.png", type: "image/png", sizes: "512x512" }], apple: "/brand/apple-icon.png" },
   title: { default: `${ORG.name} | ${ORG.tagline}`, template: `%s | ${ORG.shortName}` },
   description: `${ORG.mission} A motorcycle club and community charity organization.`,
   openGraph: {
@@ -20,6 +20,7 @@ export const metadata: Metadata = {
     title: `${ORG.name} | ${ORG.tagline}`,
     description: ORG.mission,
     locale: "en_PH",
+    images: [{ url: "/brand/logo.png", width: 640, height: 640, alt: ORG.name }],
   },
 };
 
