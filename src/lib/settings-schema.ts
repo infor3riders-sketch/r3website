@@ -129,15 +129,6 @@ export const SETTING_DEFS: SettingDef[] = [
     unmap: (v) => `${str(obj(v).area)} | ${Number(obj(v).members) || 0}`,
   }),
   {
-    key: "partners",
-    title: "Sponsors & partners",
-    description: "One name per line. Shown on Home when not empty.",
-    isPublic: true,
-    fields: [{ name: "text", label: "Names (one per line)", kind: "textarea", rows: 5 }],
-    parse: (raw) => ({ ok: true, value: splitLines(raw.text).slice(0, 40).map((name) => ({ name })) }),
-    format: (v) => ({ text: arr(v).map((p) => str(obj(p).name)).filter(Boolean).join("\n") }),
-  },
-  {
     key: "registration",
     title: "Registration details",
     description: "SEC registration shown on the About page.",

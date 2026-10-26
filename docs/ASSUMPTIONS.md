@@ -14,7 +14,7 @@ Recorded as the build proceeds. Items marked **(security)** override the brief b
 - `docs/design/home-reference.png` was **not present**, so the Home page follows the written spec and the brief's token values. Compare with `scripts/screenshot.mjs` output in `docs/design/screens/` once the mockup is added, then refine tokens in `src/styles/base.css`.
 - No logo or hero photograph was supplied: a placeholder winged "R3" emblem (SVG) and an illustrated sunset-road backdrop are used. Drop files into `public/brand/` (`logo.svg|png`, `hero.jpg`, `icons/{membership,services,merch,donate}.svg`) and they are picked up automatically.
 - Card icons are lucide placeholders (ShieldCheck, HeartHandshake, Shirt, HandHeart); lucide has no helmet.
-- Events, news and partners on Home use clearly-labelled placeholder data (`src/lib/placeholder-data.ts`) until the DB-backed pages land.
+- Events, news and sponsors on Home use clearly-labelled placeholder data (`src/lib/placeholder-data.ts`) until the DB-backed pages land.
 - Contact details in `src/lib/org.ts` are placeholders.
 
 ## Contrast (WCAG AA)

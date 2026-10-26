@@ -9,7 +9,7 @@ import { settingDef } from "@/lib/settings-schema";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { fieldErrors } from "@/lib/validators/auth";
-import { albumSchema, inviteSchema, memberUpdateSchema, membershipTypeSchema, newsSchema } from "@/lib/validators/admin";
+import { albumSchema, inviteSchema, memberUpdateSchema, membershipTypeSchema, newsSchema, sponsorSchema } from "@/lib/validators/admin";
 import { EXT_FOR, sniffImage } from "@/lib/validators/profile";
 import { echoValues, type FormState } from "@/server/form-guard";
 
@@ -21,7 +21,7 @@ async function admin() {
     throw e;
   }
 }
-const plain = (fd: FormData) => Object.fromEntries([...fd.entries()].filter(([k]) => !k.startsWith("$ACTION") && k !== "cover" && k !== "photo"));
+const plain = (fd: FormData) => Object.fromEntries([...fd.entries()].filter(([k]) => !k.startsWith("$ACTION") && k !== "cover" && k !== "photo" && k !== "logo"));
 const NOT_AUTH: FormState = { error: "Only admins can do that." };
 
 /** The public site caches pages for a few minutes; this refreshes the ones that read site settings now. */
@@ -232,6 +232,50 @@ export async function deletePhoto(fd: FormData): Promise<void> {
   if (photo?.path) await supabase.storage.from("public-media").remove([photo.path]);
   revalidatePath(`/admin/gallery/${albumId.data}`);
   revalidatePath("/site/gallery");
+}
+
+// ---------------------------------------------------------------------------
+// Sponsors & partners (logos on the public Home page)
+// ---------------------------------------------------------------------------
+export async function saveSponsor(_prev: FormState, fd: FormData): Promise<FormState> {
+  const me = await admin();
+  if (!me) return NOT_AUTH;
+  const id = z.uuid().optional().safeParse(fd.get("id") || undefined);
+  const parsed = sponsorSchema.safeParse(plain(fd));
+  if (!id.success) return { error: "Invalid request." };
+  if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error), values: echoValues(fd) };
+
+  const supabase = await createClient();
+  const sponsorId = id.data ?? crypto.randomUUID();
+  const { data: existing } = id.data ? await supabase.from("sponsors").select("logo_path").eq("id", id.data).maybeSingle() : { data: null };
+  const logo = await uploadImage(supabase, fd.get("logo"), `sponsors/${sponsorId}`);
+  if (logo.error) return { error: logo.error, values: echoValues(fd) };
+  const removeLogo = fd.get("remove_logo") === "on";
+  const row = { ...parsed.data, ...(logo.path ? { logo_path: logo.path } : removeLogo ? { logo_path: null } : {}) };
+
+  const { error } = id.data ? await supabase.from("sponsors").update(row).eq("id", id.data) : await supabase.from("sponsors").insert({ ...row, id: sponsorId });
+  if (error) {
+    if (logo.path) await supabase.storage.from("public-media").remove([logo.path]);
+    console.error("sponsor save failed", error);
+    return { error: "Could not save the sponsor." };
+  }
+  // The old file is only removed once the row no longer points at it.
+  if (existing?.logo_path && (logo.path || removeLogo)) await supabase.storage.from("public-media").remove([existing.logo_path]);
+  revalidatePath("/site");
+  revalidatePath("/admin/sponsors");
+  return { ok: true, message: id.data ? "Saved." : "Sponsor added." };
+}
+
+export async function deleteSponsor(fd: FormData): Promise<void> {
+  const me = await admin();
+  const id = z.uuid().safeParse(fd.get("id"));
+  if (!me || !id.success) return;
+  const supabase = await createClient();
+  const { data: sponsor } = await supabase.from("sponsors").select("logo_path").eq("id", id.data).maybeSingle();
+  await supabase.from("sponsors").delete().eq("id", id.data);
+  if (sponsor?.logo_path) await supabase.storage.from("public-media").remove([sponsor.logo_path]);
+  revalidatePath("/site");
+  revalidatePath("/admin/sponsors");
 }
 
 // ---------------------------------------------------------------------------

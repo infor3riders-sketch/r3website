@@ -81,7 +81,8 @@ There is no sign-up, so bootstrap one account by hand:
 
 ## 6. Fill in the content (as admin)
 
-**Admin > Site content & settings**: payment instructions (GCash number/name, bank), contact details, officers, registration details, membership stats, "how funds are used", partners.
+**Admin > Site content & settings**: payment instructions (GCash number/name, bank), contact details, officers, registration details, membership stats, "how funds are used".
+**Admin > Sponsors & partners**: sponsor names, logos and website links shown on Home.
 **Admin > Membership types**: create Riding Member, Associate/Supporter and Volunteer with fees, requirements and benefits (the Membership page is empty until you do).
 From the officer menu add programs, events, shop products (with photos and stock), dues periods, campaigns and documents.
 

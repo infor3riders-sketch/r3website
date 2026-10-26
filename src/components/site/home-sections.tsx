@@ -1,11 +1,14 @@
+import Image from "next/image";
 import Link from "next/link";
 import { CalendarDays, MapPin } from "lucide-react";
 import { PLACEHOLDER_EVENTS, PLACEHOLDER_NEWS, PLACEHOLDER_PARTNERS } from "@/lib/placeholder-data";
 import { isSupabaseConfigured } from "@/lib/env";
 import { formatDate as fmt } from "@/lib/format";
+import { publicMediaUrl } from "@/lib/supabase/public";
+import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/states";
-import { getNews, getSetting, getUpcomingEvents } from "@/server/queries/public";
+import { getNews, getSponsors, getUpcomingEvents } from "@/server/queries/public";
 
 /** Real rows when Supabase is configured; clearly-fake demo rows only for a first local run without it. */
 const demo = () => !isSupabaseConfigured();
@@ -96,7 +99,9 @@ export async function LatestNews() {
 }
 
 export async function Partners() {
-  const partners = demo() ? PLACEHOLDER_PARTNERS.map((name) => ({ name })) : await getSetting("partners");
+  const partners = demo()
+    ? PLACEHOLDER_PARTNERS.map((name) => ({ id: name, name, logo: null, url: null }))
+    : (await getSponsors()).map((s) => ({ id: s.id, name: s.name, logo: publicMediaUrl(s.logo_path), url: s.website_url }));
   if (partners.length === 0) return null;
   return (
     <section aria-labelledby="partners-h" className="mx-auto max-w-7xl px-4 py-14 sm:px-6">
@@ -104,14 +109,25 @@ export async function Partners() {
         Sponsors &amp; Partners
       </h2>
       <ul className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
-        {partners.map((p) => (
-          <li
-            key={p.name}
-            className="flex h-24 items-center justify-center rounded-lg border border-dashed border-line px-3 text-center text-sm uppercase tracking-wider text-muted"
-          >
-            {p.name}
-          </li>
-        ))}
+        {partners.map((p) => {
+          const body = p.logo ? (
+            <Image src={p.logo} alt={p.name} fill sizes="(min-width: 768px) 25vw, 50vw" className="object-contain p-4" />
+          ) : (
+            <span className="text-center text-sm uppercase tracking-wider text-muted">{p.name}</span>
+          );
+          const box = cn("relative flex h-28 items-center justify-center rounded-lg px-3", p.logo ? "border border-line bg-white/5" : "border border-dashed border-line");
+          return (
+            <li key={p.id}>
+              {p.url ? (
+                <a href={p.url} target="_blank" rel="noopener noreferrer sponsored" className={cn(box, "transition-colors hover:border-gold")} aria-label={p.logo ? `${p.name} (opens in a new tab)` : undefined}>
+                  {body}
+                </a>
+              ) : (
+                <div className={box}>{body}</div>
+              )}
+            </li>
+          );
+        })}
       </ul>
     </section>
   );

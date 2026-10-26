@@ -39,6 +39,14 @@ export async function getPublicSettingValue(key: string): Promise<Json | null> {
 }
 
 // ---------------------------------------------------------------------------
+// Sponsors & partners
+// ---------------------------------------------------------------------------
+export const getSponsors = () =>
+  safe<Pick<Row<"sponsors">, "id" | "name" | "logo_path" | "website_url">[]>([], (db) =>
+    db.from("sponsors").select("id, name, logo_path, website_url").order("sort_order").order("name"),
+  );
+
+// ---------------------------------------------------------------------------
 // Membership
 // ---------------------------------------------------------------------------
 export const getMembershipTypes = () =>

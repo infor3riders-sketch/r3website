@@ -136,6 +136,10 @@ export interface Database {
         { id: Uuid; album_id: Uuid; path: string; caption: string | null; sort_order: number; created_at: Ts },
         "album_id" | "path"
       >;
+      sponsors: Table<
+        { id: Uuid; name: string; logo_path: string | null; website_url: string | null; sort_order: number; is_public: boolean; created_at: Ts },
+        "name"
+      >;
       documents: Table<
         {
           id: Uuid; title: string; description: string | null; category: string; storage_path: string; min_role: UserRole;

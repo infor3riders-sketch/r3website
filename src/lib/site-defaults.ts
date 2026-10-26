@@ -25,7 +25,6 @@ export const DEFAULT_SETTINGS = {
     registered_with: "Securities and Exchange Commission, Iloilo City",
     registered_address: "[registered address]",
   },
-  partners: [] as { name: string }[],
   chapters: [] as { name: string; area: string }[],
   // Declared member counts per area (admin-editable). Example figures from the club; confirm before launch.
   membership_stats: [

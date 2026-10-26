@@ -57,6 +57,19 @@ export function changedKeys(oldData: unknown, newData: unknown): string[] {
 
 const intOrZero = z.union([z.literal(""), z.coerce.number().int().min(0).max(999)]).optional().transform((v) => (v === "" || v === undefined ? 0 : Number(v)));
 
+export const sponsorSchema = z.object({
+  name: z.string().trim().min(1, "Name is required").max(120),
+  website_url: z
+    .string()
+    .trim()
+    .max(300)
+    .optional()
+    .transform((v) => (v ? (/^https?:\/\//i.test(v) ? v : `https://${v}`) : null))
+    .refine((v) => v === null || URL.canParse(v), "Enter a valid web address, e.g. https://example.com"),
+  sort_order: intOrZero,
+  is_public: checkbox,
+});
+
 export const membershipTypeSchema = z
   .object({
     name: z.string().trim().min(1, "Name is required").max(80),

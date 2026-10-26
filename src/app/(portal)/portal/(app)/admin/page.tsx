@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { History, Images, Newspaper, Settings2, Tags, Users } from "lucide-react";
+import { Handshake, History, Images, Newspaper, Settings2, Tags, Users } from "lucide-react";
 
 export const metadata = { title: "Admin" };
 
@@ -9,6 +9,7 @@ const TOOLS = [
   { href: "/admin/settings", icon: Settings2, title: "Site content & settings", text: "About, officers, contact, membership stats, payment instructions." },
   { href: "/admin/news", icon: Newspaper, title: "News", text: "Write and publish news posts." },
   { href: "/admin/gallery", icon: Images, title: "Gallery", text: "Photo albums for the public site." },
+  { href: "/admin/sponsors", icon: Handshake, title: "Sponsors & partners", text: "Sponsor logos and links on the Home page." },
   { href: "/admin/audit", icon: History, title: "Audit log", text: "Who changed what, and data exports." },
 ] as const;
 

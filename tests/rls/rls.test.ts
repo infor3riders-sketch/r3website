@@ -205,6 +205,34 @@ describe("officer", () => {
   });
 });
 
+describe("sponsors", () => {
+  it("anon sees only public sponsors; only admins can add, change or delete them", async () => {
+    await as(ADMIN);
+    await db.exec(`
+      insert into public.sponsors (id, name, website_url, is_public) values
+        ('00000000-0000-0000-0000-00000000005a', 'Shown Sponsor', 'https://shown.example', true),
+        ('00000000-0000-0000-0000-00000000005b', 'Hidden Sponsor', null, false)`);
+    await as(null);
+    const r = await db.query<{ name: string }>(`select name from public.sponsors where name like '% Sponsor'`);
+    expect(r.rows.map((x) => x.name)).toEqual(["Shown Sponsor"]);
+    expect(await fails(`insert into public.sponsors (name) values ('Anon Sponsor')`)).not.toBeNull();
+
+    for (const uid of [MEMBER, OFFICER]) {
+      await as(uid);
+      expect(await fails(`insert into public.sponsors (name) values ('Sneaky Sponsor')`)).not.toBeNull();
+      await db.exec(`update public.sponsors set name = 'Renamed' where id = '00000000-0000-0000-0000-00000000005a'`);
+      await db.exec(`delete from public.sponsors where id = '00000000-0000-0000-0000-00000000005a'`);
+    }
+    await as(null);
+    expect(await count(`public.sponsors where name = 'Shown Sponsor'`)).toBe(1);
+  });
+
+  it("rejects non-http website links", async () => {
+    await as(ADMIN);
+    expect(await fails(`insert into public.sponsors (name, website_url) values ('Bad Link', 'javascript:alert(1)')`)).not.toBeNull();
+  });
+});
+
 describe("member profile modules", () => {
   it("members manage only their own motorcycles", async () => {
     await as(MEMBER);

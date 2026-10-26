@@ -6,7 +6,7 @@ import { FormFeedback, SubmitButton, type FormStateLike } from "@/components/ui/
 import { isoToManilaLocal } from "@/lib/events";
 import type { FieldDef } from "@/lib/settings-schema";
 import type { Row } from "@/lib/supabase/types";
-import { inviteMember, saveAlbum, saveMembershipType, saveNews, saveSetting, updateMember, uploadAlbumPhoto } from "@/server/admin-actions";
+import { inviteMember, saveAlbum, saveMembershipType, saveNews, saveSetting, saveSponsor, updateMember, uploadAlbumPhoto } from "@/server/admin-actions";
 
 const initial: FormStateLike = {};
 const inv = (s: FormStateLike, k: string) => ({ "aria-invalid": Boolean(s.fieldErrors?.[k]), "aria-describedby": s.fieldErrors?.[k] ? `${k}-msg` : undefined }) as const;
@@ -182,6 +182,44 @@ export function PhotoUploadForm({ albumId }: { albumId: string }) {
       </div>
       <FormFeedback state={state} />
       <SubmitButton variant="outline" pendingText="Uploading…">Upload photo</SubmitButton>
+    </form>
+  );
+}
+
+export function SponsorForm({ sponsor }: { sponsor?: Row<"sponsors"> }) {
+  const [state, action] = useActionState(saveSponsor, initial);
+  const v = state.values;
+  const val = (k: keyof Row<"sponsors">) => v?.[k] ?? (sponsor?.[k] == null ? "" : String(sponsor[k]));
+  const p = sponsor ? `sp-${sponsor.id}-` : "sp-new-";
+  return (
+    <form action={action} noValidate className="space-y-4">
+      {sponsor ? <input type="hidden" name="id" value={sponsor.id} /> : null}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Name" htmlFor={`${p}name`} error={state.fieldErrors?.name} required>
+          <Input id={`${p}name`} name="name" defaultValue={val("name")} required {...inv(state, "name")} />
+        </Field>
+        <Field label="Website" htmlFor={`${p}url`} error={state.fieldErrors?.website_url} hint="Optional. The logo links here.">
+          <Input id={`${p}url`} name="website_url" type="url" inputMode="url" placeholder="https://" defaultValue={val("website_url")} {...inv(state, "website_url")} />
+        </Field>
+        <Field label="Logo" htmlFor={`${p}logo`} hint={sponsor?.logo_path ? "Choose a file to replace the current logo. PNG, JPG or WebP up to 5 MB." : "PNG, JPG or WebP up to 5 MB. A transparent PNG looks best."}>
+          <input id={`${p}logo`} name="logo" type="file" accept="image/jpeg,image/png,image/webp" className={fileClass} />
+        </Field>
+        <Field label="Sort order" htmlFor={`${p}sort`} hint="Lower numbers show first">
+          <Input id={`${p}sort`} name="sort_order" type="number" min={0} defaultValue={val("sort_order") || "0"} />
+        </Field>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="flex min-h-11 items-center gap-3 rounded-md border border-line px-3 text-sm">
+          <input type="checkbox" name="is_public" defaultChecked={v ? v.is_public === "on" : sponsor ? sponsor.is_public : true} className="h-5 w-5 accent-[#f2a81d]" /> Show on the public website
+        </label>
+        {sponsor?.logo_path ? (
+          <label className="flex min-h-11 items-center gap-3 rounded-md border border-line px-3 text-sm">
+            <input type="checkbox" name="remove_logo" className="h-5 w-5 accent-[#f2a81d]" /> Remove the logo (show the name instead)
+          </label>
+        ) : null}
+      </div>
+      <FormFeedback state={state} />
+      <SubmitButton variant={sponsor ? "outline" : "gold"} pendingText="Saving…">{sponsor ? "Save" : "Add sponsor"}</SubmitButton>
     </form>
   );
 }

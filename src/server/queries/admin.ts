@@ -83,6 +83,12 @@ export async function listAuditTables(): Promise<string[]> {
   return [...new Set((data ?? []).map((r) => r.table_name).filter((v): v is string => Boolean(v)))].sort();
 }
 
+export async function listSponsorsAdmin(): Promise<Row<"sponsors">[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("sponsors").select("*").order("sort_order").order("name");
+  return data ?? [];
+}
+
 export async function listMembershipTypesAdmin(): Promise<Row<"membership_types">[]> {
   const supabase = await createClient();
   const { data } = await supabase.from("membership_types").select("*").order("sort_order").order("name");
