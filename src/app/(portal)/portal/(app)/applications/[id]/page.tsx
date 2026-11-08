@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
+import { ApplicationEditForm, type ApplicationEditValues } from "@/components/portal/application-edit-form";
 import { ReviewPanel } from "@/components/portal/review-panel";
+import { buttonVariants } from "@/components/ui/button";
 import { StatusBadge } from "@/components/portal/status-badge";
 import { applicationReference, canTransition, readMotorcycles, readReferences } from "@/lib/applications";
 import { formatDate, formatDateTime } from "@/lib/format";
@@ -27,8 +29,9 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
   );
 }
 
-export default async function ApplicationDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ApplicationDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ edit?: string }> }) {
   const { id } = await params;
+  const editing = (await searchParams).edit === "1";
   if (!z.uuid().safeParse(id).success) notFound();
   const [app, typeNames] = await Promise.all([getApplicationForReview(id), getMembershipTypeNames()]);
   if (!app) notFound();
@@ -36,6 +39,34 @@ export default async function ApplicationDetailPage({ params }: { params: Promis
   const bikes = readMotorcycles(app.motorcycles);
   const refs = readReferences(app.references);
   const open = canTransition(app.status, "approved");
+
+  if (editing && open) {
+    const values: ApplicationEditValues = {
+      full_name: app.full_name, email: app.email, phone: app.phone, birthdate: app.birthdate ?? "", address: app.address ?? "",
+      road_name: app.road_name ?? "", membership_type_id: app.membership_type_id ?? "", riding_years: app.riding_years?.toString() ?? "",
+      riding_experience: app.riding_experience ?? "", license_number: app.license_number ?? "",
+    };
+    bikes.forEach((m, n) => {
+      for (const [k, val] of Object.entries(m)) values[`bike_${n}_${k}`] = val == null ? "" : String(val);
+    });
+    refs.forEach((r, n) => {
+      for (const [k, val] of Object.entries(r)) values[`ref_${n}_${k}`] = val == null ? "" : String(val);
+    });
+    return (
+      <div className="max-w-4xl space-y-5">
+        <Link href={`/applications/${app.id}`} className="text-sm text-gold hover:text-gold-hover">
+          &larr; Back to review
+        </Link>
+        <header>
+          <h1 className="text-3xl font-semibold uppercase">Edit application</h1>
+          <p className="text-sm text-muted">
+            {applicationReference(app.id)} · {app.full_name}. Corrections are saved to the application and recorded in the audit log. When you approve, the corrected details go into the new member&apos;s account.
+          </p>
+        </header>
+        <ApplicationEditForm id={app.id} values={values} types={Object.entries(typeNames).map(([tid, name]) => ({ id: tid, name }))} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -49,8 +80,16 @@ export default async function ApplicationDetailPage({ params }: { params: Promis
             {applicationReference(app.id)} · submitted {formatDateTime(app.created_at)}
           </p>
         </div>
-        <StatusBadge status={app.status} />
+        <div className="flex flex-wrap items-center gap-3">
+          {open ? (
+            <Link href={`/applications/${app.id}?edit=1`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+              Edit details
+            </Link>
+          ) : null}
+          <StatusBadge status={app.status} />
+        </div>
       </header>
+      {open ? null : <p className="text-xs text-muted">This application is {app.status === "approved" ? "approved, so its details now live in the member's account" : "closed"} and can no longer be edited.</p>}
 
       <div className="grid gap-5 xl:grid-cols-[1fr_380px]">
         <div className="space-y-5">

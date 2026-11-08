@@ -10,11 +10,14 @@ import { portalUrl } from "@/lib/env";
 import { ORG } from "@/lib/org";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { parseApplicationEdit } from "@/lib/validators/application-edit";
 
 export interface ReviewState {
   ok?: boolean;
   error?: string;
   message?: string;
+  fieldErrors?: Record<string, string>;
+  values?: Record<string, string>;
 }
 
 const idSchema = z.uuid();
@@ -52,6 +55,30 @@ export async function saveReviewNotes(_prev: ReviewState, fd: FormData): Promise
   const { error } = await supabase.from("applications").update({ review_notes: notes.data ?? null }).eq("id", id.data);
   if (error) return { error: "Could not save notes." };
   return done(id.data, "Notes saved.");
+}
+
+/**
+ * Officer corrections before a decision. Only open applications (pending / info requested) can be
+ * edited; approved ones have already been copied to the member's profile. Changes are audit-logged.
+ */
+export async function updateApplication(_prev: ReviewState, fd: FormData): Promise<ReviewState> {
+  if (!(await officer())) return NOT_AUTHORIZED;
+  const id = idSchema.safeParse(fd.get("id"));
+  if (!id.success) return { error: "Invalid request." };
+  const parsed = parseApplicationEdit((k) => fd.get(k));
+  const values = Object.fromEntries([...fd.entries()].filter(([k, v]) => typeof v === "string" && !k.startsWith("$ACTION")).map(([k, v]) => [k, String(v)]));
+  if (!parsed.ok) return { error: "Please fix the highlighted fields.", fieldErrors: parsed.fieldErrors, values };
+
+  const { supabase, app } = await load(id.data);
+  if (!app) return { error: "Application not found." };
+  if (!canTransition(app.status, "approved")) return { error: "Only applications that are still open can be edited." };
+
+  const { error } = await supabase.from("applications").update(parsed.value).eq("id", id.data).in("status", ["pending", "info_requested"]);
+  if (error) {
+    console.error("application edit failed", error);
+    return { error: "Could not save the changes. Please try again.", values };
+  }
+  return done(id.data, "Application updated.");
 }
 
 /**
