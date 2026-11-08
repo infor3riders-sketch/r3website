@@ -10,6 +10,18 @@ export const dynamic = "force-dynamic";
 
 const ROLE_LABEL = { member: "Member", officer: "Officer", admin: "Admin" } as const;
 
+/** Lets long addresses wrap at the @ instead of mid-word in narrow columns. */
+function Email({ value }: { value: string }) {
+  const at = value.indexOf("@");
+  if (at < 0) return <>{value}</>;
+  return (
+    <>
+      {value.slice(0, at)}
+      <wbr />@{value.slice(at + 1)}
+    </>
+  );
+}
+
 export default async function MemberRosterReport({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const me = await requireRole("officer");
   const sp = await searchParams;
@@ -62,7 +74,7 @@ export default async function MemberRosterReport({ searchParams }: { searchParam
             <td>{ROLE_LABEL[p.role]}</td>
             <td className="whitespace-nowrap">{p.member_since ? formatDate(p.member_since) : ""}</td>
             <td className="whitespace-nowrap">{p.phone ?? ""}</td>
-            <td className="break-all">{p.email ?? ""}</td>
+            <td className="[overflow-wrap:anywhere]">{p.email ? <Email value={p.email} /> : ""}</td>
             {status === "all" ? <td className="capitalize">{p.status}</td> : null}
             {emergency ? (
               <>
