@@ -13,8 +13,8 @@ interface ShellUser {
 export function PortalShell({ user, children }: { user: ShellUser; children: React.ReactNode }) {
   const items = portalNavFor(user.role);
   return (
-    <div className="min-h-dvh lg:grid lg:grid-cols-[240px_1fr]">
-      <aside className="flex flex-col border-b border-line bg-panel lg:sticky lg:top-0 lg:h-dvh lg:border-b-0 lg:border-r">
+    <div className="min-h-dvh lg:grid lg:grid-cols-[240px_1fr] print:block print:min-h-0">
+      <aside className="flex flex-col border-b border-line bg-panel lg:sticky lg:top-0 lg:h-dvh lg:border-b-0 lg:border-r print:hidden">
         <div className="flex items-center gap-3 px-4 py-3 lg:py-5">
           <Logo className="w-10" />
           <span className="font-display text-sm uppercase tracking-widest text-gold">Member Portal</span>
@@ -45,8 +45,8 @@ export function PortalShell({ user, children }: { user: ShellUser; children: Rea
           </form>
         </div>
       </aside>
-      <main id="main" className="min-w-0 p-4 sm:p-6">
-        <div className="mb-4 flex items-center justify-between gap-3 lg:hidden">
+      <main id="main" className="min-w-0 p-4 sm:p-6 print:p-0">
+        <div className="mb-4 flex items-center justify-between gap-3 lg:hidden print:hidden">
           <p className="truncate text-sm text-muted">
             Signed in as <span className="text-white">{user.name}</span>
           </p>

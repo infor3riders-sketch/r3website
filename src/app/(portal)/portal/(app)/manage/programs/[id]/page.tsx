@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
+import { Printer } from "lucide-react";
 import { ProgramForm, SlotForm } from "@/components/portal/volunteer-forms";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/field";
 import { formatDateTime } from "@/lib/format";
 import { deleteProgram, deleteSlot, updateSignup } from "@/server/volunteer-actions";
@@ -20,9 +21,14 @@ export default async function ManageProgramPage({ params }: { params: Promise<{ 
 
   return (
     <div className="space-y-8">
-      <Link href="/manage/programs" className="text-sm text-gold hover:text-gold-hover">
-        &larr; All programs
-      </Link>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Link href="/manage/programs" className="text-sm text-gold hover:text-gold-hover">
+          &larr; All programs
+        </Link>
+        <Link href={`/manage/programs/${program.id}/report`} prefetch={false} className={buttonVariants({ variant: "outline", size: "sm" })}>
+          <Printer aria-hidden className="h-4 w-4" /> Hours report
+        </Link>
+      </div>
       <header>
         <h1 className="text-3xl font-semibold uppercase">{program.title}</h1>
         <p className="text-sm text-muted">{rows.filter((r) => r.status !== "cancelled").length} active sign-ups · {totalHours} volunteer hours recorded</p>

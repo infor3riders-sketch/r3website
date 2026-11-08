@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
+import { Printer } from "lucide-react";
 import { StatusBadge } from "@/components/portal/status-badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
 import { formatDate, formatPHP } from "@/lib/format";
 import { deletePeriod, recordCashDues, rejectDues, verifyDues } from "@/server/dues-actions";
@@ -20,7 +21,12 @@ export default async function PeriodRosterPage({ params }: { params: Promise<{ i
 
   return (
     <div className="space-y-6">
-      <Link href="/manage/dues" className="text-sm text-gold hover:text-gold-hover">&larr; All periods</Link>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Link href="/manage/dues" className="text-sm text-gold hover:text-gold-hover">&larr; All periods</Link>
+        <Link href={`/manage/dues/${period.id}/report`} prefetch={false} className={buttonVariants({ variant: "outline", size: "sm" })}>
+          <Printer aria-hidden className="h-4 w-4" /> Collection report
+        </Link>
+      </div>
       <header>
         <h1 className="text-3xl font-semibold uppercase">{period.label}</h1>
         <p className="text-sm text-muted">{formatPHP(Number(period.amount))} · due {formatDate(period.due_on)} · {paid} of {rows.length} paid</p>

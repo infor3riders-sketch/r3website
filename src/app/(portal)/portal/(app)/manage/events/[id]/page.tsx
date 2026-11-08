@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
-import { CheckCircle2, Circle } from "lucide-react";
+import { CheckCircle2, Circle, Printer } from "lucide-react";
 import { EventForm } from "@/components/portal/event-forms";
 import { StatusBadge } from "@/components/portal/status-badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Select } from "@/components/ui/field";
 import { seatsUsed } from "@/lib/events";
 import { formatDateTime } from "@/lib/format";
@@ -26,9 +26,19 @@ export default async function ManageEventPage({ params }: { params: Promise<{ id
 
   return (
     <div className="space-y-8">
-      <Link href="/manage/events" className="text-sm text-gold hover:text-gold-hover">
-        &larr; All events
-      </Link>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Link href="/manage/events" className="text-sm text-gold hover:text-gold-hover">
+          &larr; All events
+        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link href={`/manage/events/${event.id}/report`} prefetch={false} className={buttonVariants({ variant: "outline", size: "sm" })}>
+            <Printer aria-hidden className="h-4 w-4" /> Event report
+          </Link>
+          <Link href={`/manage/events/${event.id}/sign-in`} prefetch={false} className={buttonVariants({ variant: "outline", size: "sm" })}>
+            <Printer aria-hidden className="h-4 w-4" /> Sign-in sheet
+          </Link>
+        </div>
+      </div>
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-3xl font-semibold uppercase">{event.title}</h1>

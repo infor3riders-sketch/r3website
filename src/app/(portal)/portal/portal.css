@@ -11,3 +11,33 @@ body.theme-portal {
   --color-line: #2f2f34;
   font-size: 15px;
 }
+
+/*
+ * Printing (reports, receipts): the portal shell hides itself with print: utilities; this makes the
+ * page plain black on white and keeps table rows whole across page breaks.
+ */
+@page {
+  size: A4;
+  margin: 12mm;
+}
+@page landscape {
+  size: A4 landscape;
+  margin: 10mm;
+}
+@media print {
+  body.theme-portal {
+    background: #fff;
+    color: #000;
+    font-size: 11pt;
+  }
+  .print-landscape {
+    page: landscape;
+  }
+  thead {
+    display: table-header-group;
+  }
+  tr,
+  .print-keep {
+    break-inside: avoid;
+  }
+}

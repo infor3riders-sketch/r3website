@@ -75,7 +75,7 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
                     {r.row_id ? <div className="font-mono text-[11px] text-muted">{r.row_id.slice(0, 8)}</div> : null}
                   </td>
                   <td className="px-4 py-2 text-xs text-muted">
-                    {r.action === "update" ? changedKeys(r.old_data, r.new_data).join(", ") || "(no visible change)" : r.action === "export_donations" ? JSON.stringify(r.new_data) : ""}
+                    {r.action === "update" ? changedKeys(r.old_data, r.new_data).join(", ") || "(no visible change)" : r.action === "export_donations" || r.action.startsWith("print_") ? JSON.stringify(r.new_data) : ""}
                   </td>
                 </tr>
               ))}
