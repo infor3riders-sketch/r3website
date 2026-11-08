@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CalendarDays, ClipboardList, MapPin, Route, Users } from "lucide-react";
 import { RsvpForm } from "@/components/portal/event-forms";
+import { ViewOnlyNotice } from "@/components/portal/view-only";
+import { memberCan } from "@/server/queries/permissions";
 import { Notice } from "@/components/ui/states";
 import { requireUser } from "@/lib/auth/session";
 import { isPastEvent, seatsRemaining } from "@/lib/events";
@@ -23,8 +25,8 @@ function Detail({ icon: Icon, label, children }: { icon: typeof MapPin; label: s
 
 export default async function EventDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const { userId } = await requireUser(`/events/${slug}`);
-  const event = await getMemberEvent(userId, slug);
+  const { userId, profile } = await requireUser(`/events/${slug}`);
+  const [event, canRsvp] = await Promise.all([getMemberEvent(userId, slug), memberCan(profile?.role, "rsvp")]);
   if (!event) notFound();
   const past = isPastEvent(event);
   const left = seatsRemaining(event.capacity, event.taken);
@@ -59,7 +61,18 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
 
       <aside aria-label="RSVP" className="h-fit rounded-lg border border-line bg-panel p-5 lg:sticky lg:top-6">
         <h2 className="mb-4 text-xl font-semibold uppercase text-gold">Your RSVP</h2>
-        {past ? <Notice tone="info">This event has already taken place.</Notice> : <RsvpForm event={event} mine={event.mine} seatsLeft={left} />}
+        {past ? (
+          <Notice tone="info">This event has already taken place.</Notice>
+        ) : canRsvp ? (
+          <RsvpForm event={event} mine={event.mine} seatsLeft={left} />
+        ) : (
+          <div className="space-y-3">
+            <p className="text-white">
+              {event.mine ? <>You are marked as <strong>{event.mine.status === "no" ? "not going" : event.mine.status}</strong>.</> : "You have not RSVPed."}
+            </p>
+            <ViewOnlyNotice>Online RSVPs are turned off. Please tell an officer if you are joining.</ViewOnlyNotice>
+          </div>
+        )}
       </aside>
     </div>
   );

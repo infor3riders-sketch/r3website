@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { DuesProofForm } from "@/components/portal/dues-forms";
+import { ViewOnlyNotice } from "@/components/portal/view-only";
+import { memberCan } from "@/server/queries/permissions";
 import { StatusBadge } from "@/components/portal/status-badge";
 import { PaymentInstructions } from "@/components/site/payment-instructions";
 import { EmptyState, Notice } from "@/components/ui/states";
@@ -14,8 +16,8 @@ const BADGE: Record<string, string> = { paid: "approved", pending: "pending", re
 const LABEL: Record<string, string> = { paid: "Paid", pending: "Awaiting verification", rejected: "Needs attention", overdue: "Overdue", due: "Due", upcoming: "Upcoming" };
 
 export default async function DuesPage() {
-  const { userId } = await requireUser("/dues");
-  const [rows, instructions] = await Promise.all([listMyDues(userId), getPaymentInstructions()]);
+  const { userId, profile } = await requireUser("/dues");
+  const [rows, instructions, canSubmit] = await Promise.all([listMyDues(userId), getPaymentInstructions(), memberCan(profile?.role, "submit_dues")]);
   const owing = rows.filter((r) => r.state === "due" || r.state === "overdue" || r.state === "rejected");
 
   return (
@@ -48,12 +50,16 @@ export default async function DuesPage() {
                   <Link href={`/dues/${payment.id}/receipt`} className="text-gold underline">View receipt</Link>
                 </p>
               ) : null}
-              {state === "pending" ? <div className="mt-3"><Notice tone="info">Your payment details were received. An officer will verify them shortly. You can send updated details below.</Notice></div> : null}
+              {state === "pending" ? <div className="mt-3"><Notice tone="info">Your payment details were received. An officer will verify them shortly.{canSubmit ? " You can send updated details below." : ""}</Notice></div> : null}
               {state === "rejected" && payment?.reject_reason ? <div className="mt-3"><Notice tone="error">Reason: {payment.reject_reason}</Notice></div> : null}
 
               {state !== "paid" && state !== "upcoming" ? (
                 <div className="mt-4 border-t border-line pt-4">
-                  <DuesProofForm periodId={period.id} reference={payment?.reference_no} />
+                  {canSubmit ? (
+                    <DuesProofForm periodId={period.id} reference={payment?.reference_no} />
+                  ) : (
+                    <ViewOnlyNotice>Online payment submission is turned off. Please pay an officer, who will record your payment.</ViewOnlyNotice>
+                  )}
                 </div>
               ) : null}
             </li>

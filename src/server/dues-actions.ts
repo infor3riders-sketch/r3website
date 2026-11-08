@@ -12,6 +12,8 @@ import { fieldErrors } from "@/lib/validators/auth";
 import { cashDuesSchema, duesDecisionSchema, duesProofSchema, periodSchema } from "@/lib/validators/dues";
 import { PROOF_MAX_BYTES, sniffProof } from "@/lib/validators/shop";
 import { echoValues, type FormState } from "@/server/form-guard";
+import { VIEW_ONLY_MESSAGE } from "@/lib/member-permissions";
+import { memberCan } from "@/server/queries/permissions";
 
 async function role(min: "member" | "officer") {
   try {
@@ -29,6 +31,7 @@ const plain = (fd: FormData) => Object.fromEntries([...fd.entries()].filter(([k]
 export async function submitDuesPayment(_prev: FormState, fd: FormData): Promise<FormState> {
   const me = await role("member");
   if (!me) return { error: "Please sign in again." };
+  if (!(await memberCan(me.role, "submit_dues"))) return { error: VIEW_ONLY_MESSAGE };
   const parsed = duesProofSchema.safeParse(plain(fd));
   if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error) };
 

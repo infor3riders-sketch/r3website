@@ -9,6 +9,8 @@ import { createClient } from "@/lib/supabase/server";
 import { fieldErrors } from "@/lib/validators/auth";
 import { eventSchema, rsvpSchema } from "@/lib/validators/events";
 import { echoValues, type FormState } from "@/server/form-guard";
+import { VIEW_ONLY_MESSAGE } from "@/lib/member-permissions";
+import { memberCan } from "@/server/queries/permissions";
 
 async function role(min: "member" | "officer") {
   try {
@@ -27,6 +29,7 @@ const plain = (fd: FormData) => Object.fromEntries([...fd.entries()].filter(([k]
 export async function saveRsvp(_prev: FormState, fd: FormData): Promise<FormState> {
   const me = await role("member");
   if (!me) return { error: "Please sign in again." };
+  if (!(await memberCan(me.role, "rsvp"))) return { error: VIEW_ONLY_MESSAGE };
   const parsed = rsvpSchema.safeParse(plain(fd));
   if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error), values: echoValues(fd) };
   const d = parsed.data;

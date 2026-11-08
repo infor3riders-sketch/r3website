@@ -1,14 +1,19 @@
-import { Bike, Mail, Phone } from "lucide-react";
+import Link from "next/link";
+import { Bike, Mail, Phone, Printer } from "lucide-react";
 import { Avatar } from "@/components/portal/avatar";
+import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/states";
+import { requireUser } from "@/lib/auth/session";
 import { formatDate } from "@/lib/format";
 import { searchDirectory, signedAvatarUrls } from "@/server/queries/members";
+import { memberCan } from "@/server/queries/permissions";
 
 export const metadata = { title: "Member Directory" };
 
 export default async function DirectoryPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const q = ((await searchParams).q ?? "").slice(0, 80);
-  const members = await searchDirectory(q);
+  const { profile } = await requireUser("/directory");
+  const [members, canPrint] = await Promise.all([searchDirectory(q), memberCan(profile?.role, "print_roster")]);
   const avatars = await signedAvatarUrls(members.map((m) => m.avatar_path));
 
   return (
@@ -18,6 +23,12 @@ export default async function DirectoryPage({ searchParams }: { searchParams: Pr
           <h1 className="text-3xl font-semibold uppercase">Member Directory</h1>
           <p className="text-sm text-muted">Members appear here only if they chose to be listed, and share only what they allow.</p>
         </div>
+        <div className="flex flex-wrap items-center gap-2">
+        {canPrint ? (
+          <Link href="/directory/print" prefetch={false} className={buttonVariants({ variant: "outline", size: "sm" })}>
+            <Printer aria-hidden className="h-4 w-4" /> Print roster
+          </Link>
+        ) : null}
         <form role="search" className="flex gap-2">
           <label htmlFor="q" className="sr-only">
             Search by name or road name
@@ -33,6 +44,7 @@ export default async function DirectoryPage({ searchParams }: { searchParams: Pr
             Search
           </button>
         </form>
+        </div>
       </header>
 
       {members.length === 0 ? (

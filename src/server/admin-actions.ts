@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { AuthError, requireRole } from "@/lib/auth/session";
 import { portalUrl } from "@/lib/env";
+import { permissionsFromForm } from "@/lib/member-permissions";
 import { settingDef } from "@/lib/settings-schema";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -49,6 +50,23 @@ export async function saveSetting(_prev: FormState, fd: FormData): Promise<FormS
   }
   refreshSite();
   return { ok: true, message: "Saved." };
+}
+
+// ---------------------------------------------------------------------------
+// Member permissions (what regular members may change themselves)
+// ---------------------------------------------------------------------------
+export async function saveMemberPermissions(_prev: FormState, fd: FormData): Promise<FormState> {
+  const me = await admin();
+  if (!me) return NOT_AUTH;
+  const value = permissionsFromForm((k) => fd.get(k));
+  const supabase = await createClient(); // RLS: only admins may write site_settings
+  const { error } = await supabase.from("site_settings").upsert({ key: "member_permissions", value, is_public: false, updated_by: me.id }, { onConflict: "key" });
+  if (error) {
+    console.error("member permissions save failed", error);
+    return { error: "Could not save the permissions." };
+  }
+  for (const path of ["/admin/permissions", "/profile", "/profile/motorcycles", "/events", "/programs", "/dues"]) revalidatePath(path);
+  return { ok: true, message: "Permissions saved. They apply to all members right away." };
 }
 
 // ---------------------------------------------------------------------------

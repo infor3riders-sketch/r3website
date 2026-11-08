@@ -6,13 +6,14 @@ import { EmptyState } from "@/components/ui/states";
 import { requireUser } from "@/lib/auth/session";
 import { formatDateTime } from "@/lib/format";
 import { cancelSignup } from "@/server/volunteer-actions";
+import { memberCan } from "@/server/queries/permissions";
 import { listMemberPrograms, listMySignups } from "@/server/queries/volunteering";
 
 export const metadata = { title: "Volunteer & Programs" };
 
 export default async function ProgramsPage() {
-  const { userId } = await requireUser("/programs");
-  const [programs, mine] = await Promise.all([listMemberPrograms(), listMySignups(userId)]);
+  const { userId, profile } = await requireUser("/programs");
+  const [programs, mine, canSignUp] = await Promise.all([listMemberPrograms(), listMySignups(userId), memberCan(profile?.role, "volunteer")]);
   const active = mine.filter((m) => m.signup.status !== "cancelled");
   const hours = mine.reduce((n, m) => n + Number(m.signup.hours ?? 0), 0);
 
@@ -54,7 +55,7 @@ export default async function ProgramsPage() {
                 </div>
                 <div className="flex items-center gap-3">
                   <StatusBadge status={signup.status} />
-                  {signup.status === "pending" || signup.status === "confirmed" ? (
+                  {canSignUp && (signup.status === "pending" || signup.status === "confirmed") ? (
                     <form action={cancelSignup}>
                       <input type="hidden" name="id" value={signup.id} />
                       <button type="submit" className="min-h-11 rounded-md px-3 text-sm text-red-300 hover:bg-white/10">Cancel</button>

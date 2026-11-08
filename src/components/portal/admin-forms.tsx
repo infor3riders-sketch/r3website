@@ -6,7 +6,8 @@ import { FormFeedback, SubmitButton, type FormStateLike } from "@/components/ui/
 import { isoToManilaLocal } from "@/lib/events";
 import type { FieldDef } from "@/lib/settings-schema";
 import type { Row } from "@/lib/supabase/types";
-import { inviteMember, saveAlbum, saveMembershipType, saveNews, saveSetting, saveSponsor, updateMember, uploadAlbumPhoto } from "@/server/admin-actions";
+import { MEMBER_PERMISSIONS, type MemberPermissions } from "@/lib/member-permissions";
+import { inviteMember, saveAlbum, saveMemberPermissions, saveMembershipType, saveNews, saveSetting, saveSponsor, updateMember, uploadAlbumPhoto } from "@/server/admin-actions";
 
 const initial: FormStateLike = {};
 const inv = (s: FormStateLike, k: string) => ({ "aria-invalid": Boolean(s.fieldErrors?.[k]), "aria-describedby": s.fieldErrors?.[k] ? `${k}-msg` : undefined }) as const;
@@ -269,6 +270,28 @@ export function MembershipTypeForm({ type }: { type?: Row<"membership_types"> })
       </div>
       <FormFeedback state={state} />
       <SubmitButton variant={type ? "outline" : "gold"}>{type ? "Save" : "Create membership type"}</SubmitButton>
+    </form>
+  );
+}
+
+export function MemberPermissionsForm({ value }: { value: MemberPermissions }) {
+  const [state, action] = useActionState(saveMemberPermissions, initial);
+  return (
+    <form action={action} className="space-y-4">
+      <fieldset className="space-y-1">
+        <legend className="mb-2 text-sm text-muted">Ticked = members can do it. Unticked = view only.</legend>
+        {MEMBER_PERMISSIONS.map((p) => (
+          <label key={p.key} className="flex min-h-11 items-start gap-3 rounded-md px-1 py-2 hover:bg-white/5">
+            <input type="checkbox" name={p.key} defaultChecked={value[p.key]} className="mt-0.5 h-5 w-5 shrink-0 accent-[#f2a81d]" />
+            <span>
+              <span className="block font-medium text-white">{p.label}</span>
+              <span className="block text-xs text-muted">{p.hint}</span>
+            </span>
+          </label>
+        ))}
+      </fieldset>
+      <FormFeedback state={state} />
+      <SubmitButton pendingText="Saving…">Save permissions</SubmitButton>
     </form>
   );
 }

@@ -481,3 +481,40 @@ describe("stock lifecycle (service role)", () => {
     expect((await db.query<{ cancel_order: boolean }>(`select public.cancel_order('00000000-0000-0000-0000-0000000000f3')`)).rows[0].cancel_order).toBe(false);
   });
 });
+
+describe("member permissions", () => {
+  const setPerms = async (json: string) => {
+    await as(ADMIN);
+    await db.exec(`update public.site_settings set value = '${json}'::jsonb where key = 'member_permissions'`);
+  };
+  afterAll(async () => setPerms('{"edit_profile": true, "manage_motorcycles": true, "rsvp": true, "volunteer": true, "submit_dues": true, "print_roster": false}'));
+
+  it("members cannot read the permissions row; only admins can change it", async () => {
+    await as(MEMBER);
+    expect(await count(`public.site_settings where key = 'member_permissions'`)).toBe(0);
+    await db.exec(`update public.site_settings set value = '{}'::jsonb where key = 'member_permissions'`);
+    await as(ADMIN);
+    expect(await count(`public.site_settings where key = 'member_permissions' and value ? 'edit_profile'`)).toBe(1);
+  });
+
+  it("view-only blocks member changes but not officers", async () => {
+    await setPerms('{"edit_profile": false, "manage_motorcycles": false, "rsvp": false, "volunteer": false, "submit_dues": false}');
+    await as(MEMBER);
+    await db.exec(`update public.profiles set phone = '0900 000 0000' where id = '${MEMBER}'`); // silently matches no rows
+    expect(await fails(`insert into public.motorcycles (profile_id, make, model) values ('${MEMBER}', 'Yamaha', 'NMAX')`)).toMatch(/row-level security/i);
+    expect(await fails(`insert into public.event_rsvps (event_id, profile_id, status) select id, '${MEMBER}', 'maybe' from public.events limit 1`)).toMatch(/row-level security/i);
+    expect(await fails(`insert into public.dues_payments (period_id, profile_id, amount, reference_no) select id, '${MEMBER}', amount, 'REF9' from public.dues_periods limit 1`)).toMatch(/row-level security/i);
+    await as(OFFICER);
+    expect(await count(`public.profiles where id = '${MEMBER}' and phone = '0900 000 0000'`)).toBe(0);
+    expect(await fails(`insert into public.motorcycles (profile_id, make, model) values ('${OFFICER}', 'Honda', 'ADV')`)).toBeNull();
+  });
+
+  it("turning a permission back on restores it", async () => {
+    await setPerms('{"edit_profile": true, "manage_motorcycles": true}');
+    await as(MEMBER);
+    await db.exec(`update public.profiles set phone = '0900 111 1111' where id = '${MEMBER}'`);
+    expect(await fails(`insert into public.motorcycles (profile_id, make, model) values ('${MEMBER}', 'Yamaha', 'NMAX')`)).toBeNull();
+    await as(OFFICER);
+    expect(await count(`public.profiles where id = '${MEMBER}' and phone = '0900 111 1111'`)).toBe(1);
+  });
+});

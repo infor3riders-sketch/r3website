@@ -13,8 +13,11 @@ import {
   sniffImage,
 } from "@/lib/validators/profile";
 import { echoValues, type FormState } from "@/server/form-guard";
+import { VIEW_ONLY_MESSAGE } from "@/lib/member-permissions";
+import { memberCan } from "@/server/queries/permissions";
 
 const NOT_SIGNED_IN: FormState = { error: "Please sign in again." };
+const VIEW_ONLY: FormState = { error: VIEW_ONLY_MESSAGE };
 
 async function member() {
   try {
@@ -30,6 +33,7 @@ const plain = (fd: FormData) => Object.fromEntries([...fd.entries()].filter(([k]
 export async function updateProfile(_prev: FormState, fd: FormData): Promise<FormState> {
   const me = await member();
   if (!me) return NOT_SIGNED_IN;
+  if (!(await memberCan(me.role, "edit_profile"))) return VIEW_ONLY;
   const parsed = profileSchema.safeParse(plain(fd));
   if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error), values: echoValues(fd) };
 
@@ -48,6 +52,7 @@ export async function updateProfile(_prev: FormState, fd: FormData): Promise<For
 export async function uploadAvatar(_prev: FormState, fd: FormData): Promise<FormState> {
   const me = await member();
   if (!me) return NOT_SIGNED_IN;
+  if (!(await memberCan(me.role, "edit_profile"))) return VIEW_ONLY;
   const file = fd.get("avatar");
   if (!(file instanceof File) || file.size === 0) return { error: "Choose an image to upload." };
   if (file.size > AVATAR_MAX_BYTES) return { error: "That image is larger than 2 MB." };
@@ -76,6 +81,7 @@ export async function uploadAvatar(_prev: FormState, fd: FormData): Promise<Form
 export async function removeAvatar(): Promise<FormState> {
   const me = await member();
   if (!me) return NOT_SIGNED_IN;
+  if (!(await memberCan(me.role, "edit_profile"))) return VIEW_ONLY;
   const supabase = await createClient();
   const { data: current } = await supabase.from("profiles").select("avatar_path").eq("id", me.id).maybeSingle();
   await supabase.from("profiles").update({ avatar_path: null }).eq("id", me.id);
@@ -87,6 +93,7 @@ export async function removeAvatar(): Promise<FormState> {
 export async function saveMotorcycle(_prev: FormState, fd: FormData): Promise<FormState> {
   const me = await member();
   if (!me) return NOT_SIGNED_IN;
+  if (!(await memberCan(me.role, "manage_motorcycles"))) return VIEW_ONLY;
   const id = z.uuid().optional().safeParse(fd.get("id") || undefined);
   const parsed = motorcycleFormSchema.safeParse(plain(fd));
   if (!id.success || !parsed.success) {
@@ -108,7 +115,7 @@ export async function saveMotorcycle(_prev: FormState, fd: FormData): Promise<Fo
 export async function deleteMotorcycle(fd: FormData): Promise<void> {
   const me = await member();
   const id = z.uuid().safeParse(fd.get("id"));
-  if (!me || !id.success) return;
+  if (!me || !id.success || !(await memberCan(me.role, "manage_motorcycles"))) return;
   const supabase = await createClient();
   await supabase.from("motorcycles").delete().eq("id", id.data).eq("profile_id", me.id);
   revalidatePath("/profile/motorcycles");

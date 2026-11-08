@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SignupForm } from "@/components/portal/volunteer-forms";
+import { ViewOnlyNotice } from "@/components/portal/view-only";
+import { memberCan } from "@/server/queries/permissions";
 import { StatusBadge } from "@/components/portal/status-badge";
 import { EmptyState } from "@/components/ui/states";
 import { requireUser } from "@/lib/auth/session";
@@ -12,10 +14,10 @@ export const metadata = { title: "Program" };
 
 export default async function ProgramDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const { userId } = await requireUser(`/programs/${slug}`);
+  const { userId, profile } = await requireUser(`/programs/${slug}`);
   const program = await getProgramBySlug(slug);
   if (!program) notFound();
-  const slots = await getSlots(program.id, userId);
+  const [slots, canSignUp] = await Promise.all([getSlots(program.id, userId), memberCan(profile?.role, "volunteer")]);
 
   return (
     <div className="max-w-4xl space-y-6">
@@ -45,6 +47,7 @@ export default async function ProgramDetailPage({ params }: { params: Promise<{ 
       {program.volunteer_enabled ? (
         <section aria-labelledby="slots-h" className="space-y-3">
           <h2 id="slots-h" className="text-2xl font-semibold uppercase text-gold">Volunteer slots</h2>
+          {canSignUp ? null : <ViewOnlyNotice>Online volunteer sign-ups are turned off. Please tell an officer if you would like to help.</ViewOnlyNotice>}
           {slots.length === 0 ? (
             <EmptyState title="No scheduled slots right now">You can still tell officers you are available.</EmptyState>
           ) : (
@@ -60,16 +63,18 @@ export default async function ProgramDetailPage({ params }: { params: Promise<{ 
                         {left !== null ? ` · ${left} spot${left === 1 ? "" : "s"} left` : ""}
                       </p>
                     </div>
-                    {s.mine ? <StatusBadge status={s.mine.status} /> : left === 0 ? <span className="text-sm text-muted">Full</span> : <SignupForm programId={program.id} slotId={s.id} label="Sign up for this slot" />}
+                    {s.mine ? <StatusBadge status={s.mine.status} /> : left === 0 ? <span className="text-sm text-muted">Full</span> : !canSignUp ? null : <SignupForm programId={program.id} slotId={s.id} label="Sign up for this slot" />}
                   </li>
                 );
               })}
             </ul>
           )}
-          <div className="rounded-lg border border-line bg-panel p-4">
-            <p className="mb-2 text-sm text-muted">Not seeing a good time? Let officers know you are generally available.</p>
-            <SignupForm programId={program.id} label="I'm generally available" />
-          </div>
+          {canSignUp ? (
+            <div className="rounded-lg border border-line bg-panel p-4">
+              <p className="mb-2 text-sm text-muted">Not seeing a good time? Let officers know you are generally available.</p>
+              <SignupForm programId={program.id} label="I'm generally available" />
+            </div>
+          ) : null}
         </section>
       ) : null}
     </div>

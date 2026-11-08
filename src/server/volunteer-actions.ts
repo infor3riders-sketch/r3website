@@ -10,6 +10,8 @@ import { createClient } from "@/lib/supabase/server";
 import { fieldErrors } from "@/lib/validators/auth";
 import { programSchema, signupUpdateSchema, slotSchema } from "@/lib/validators/events";
 import { echoValues, type FormState } from "@/server/form-guard";
+import { VIEW_ONLY_MESSAGE } from "@/lib/member-permissions";
+import { memberCan } from "@/server/queries/permissions";
 
 async function role(min: "member" | "officer") {
   try {
@@ -33,6 +35,7 @@ const signupSchema = z.object({
 export async function signUpForProgram(_prev: FormState, fd: FormData): Promise<FormState> {
   const me = await role("member");
   if (!me) return { error: "Please sign in again." };
+  if (!(await memberCan(me.role, "volunteer"))) return { error: VIEW_ONLY_MESSAGE };
   const parsed = signupSchema.safeParse(plain(fd));
   if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error), values: echoValues(fd) };
 
@@ -63,7 +66,7 @@ export async function signUpForProgram(_prev: FormState, fd: FormData): Promise<
 export async function cancelSignup(fd: FormData): Promise<void> {
   const me = await role("member");
   const id = z.uuid().safeParse(fd.get("id"));
-  if (!me || !id.success) return;
+  if (!me || !id.success || !(await memberCan(me.role, "volunteer"))) return;
   const supabase = await createClient();
   await supabase.from("volunteer_signups").update({ status: "cancelled" }).eq("id", id.data).eq("profile_id", me.id);
   revalidatePath("/programs");
