@@ -518,3 +518,52 @@ describe("member permissions", () => {
     expect(await count(`public.profiles where id = '${MEMBER}' and phone = '0900 111 1111'`)).toBe(1);
   });
 });
+
+describe("portal access toggle", () => {
+  afterAll(async () => {
+    await as(ADMIN);
+    await db.exec(`update public.profiles set portal_access = true where id in ('${MEMBER}', '${OFFICER}')`);
+  });
+
+  it("members and officers cannot change anyone's access, including their own", async () => {
+    await as(MEMBER);
+    expect(await fails(`update public.profiles set portal_access = false where id = '${MEMBER}'`)).toMatch(/only admins/i);
+    await as(OFFICER);
+    expect(await fails(`update public.profiles set portal_access = false where id = '${OFFICER}'`)).toMatch(/only admins/i);
+  });
+
+  it("revoking access makes every member and officer policy deny; restoring brings it back", async () => {
+    await as(ADMIN);
+    await db.exec(`update public.profiles set portal_access = false where id in ('${MEMBER}', '${OFFICER}')`);
+    await as(MEMBER);
+    expect(await count("public.events where not is_public")).toBe(0);
+    expect(await count("public.member_directory")).toBe(0);
+    expect(await fails(`insert into public.event_rsvps (event_id, profile_id, status) select id, '${MEMBER}', 'maybe' from public.events limit 1`)).toMatch(/row-level security/i);
+    await as(OFFICER);
+    expect(await count("public.applications")).toBe(0);
+    await as(ADMIN);
+    await db.exec(`update public.profiles set portal_access = true where id in ('${MEMBER}', '${OFFICER}')`);
+    expect(await count(`public.audit_log where table_name = 'profiles' and new_data ->> 'portal_access' = 'true' and row_id = '${MEMBER}'`)).toBeGreaterThan(0);
+    await as(MEMBER);
+    expect(await fails(`select public.is_member()`)).toBeNull();
+    expect((await db.query<{ ok: boolean }>(`select public.is_member() as ok`)).rows[0].ok).toBe(true);
+  });
+});
+
+describe("login activity log", () => {
+  it("only admins can read it and nobody can write it from the client", async () => {
+    await asService();
+    await db.exec(`insert into public.login_events (profile_id, email, event, method) values ('${MEMBER}', 'member@example.com', 'login', 'password')`);
+    await as(null);
+    expect(await fails(`select * from public.login_events`)).toMatch(/permission denied/i);
+    for (const uid of [MEMBER, OFFICER]) {
+      await as(uid);
+      expect(await count("public.login_events")).toBe(0);
+      expect(await fails(`insert into public.login_events (event) values ('login')`)).not.toBeNull();
+    }
+    await as(ADMIN);
+    expect(await count("public.login_events")).toBeGreaterThan(0);
+    expect(await fails(`delete from public.login_events`)).not.toBeNull();
+    expect(await fails(`insert into public.login_events (event) values ('login')`)).not.toBeNull();
+  });
+});

@@ -13,6 +13,7 @@ export type PaymentStatus = "pending" | "paid" | "rejected" | "refunded" | "canc
 export type PaymentMethod = "manual" | "paymongo";
 export type OrderStatus = "pending_payment" | "paid" | "processing" | "shipped" | "completed" | "cancelled" | "expired";
 export type DiscountKind = "percent" | "fixed";
+export type LoginEventType = "login" | "logout" | "login_failed" | "access_revoked" | "access_restored";
 
 type Ts = string; // timestamptz / date as ISO string
 type Uuid = string;
@@ -48,6 +49,7 @@ export interface Database {
           emergency_contact_name: string | null; emergency_contact_phone: string | null; emergency_contact_relation: string | null;
           membership_type_id: Uuid | null; member_since: string | null;
           directory_visible: boolean; show_phone: boolean; show_email: boolean; show_motorcycles: boolean;
+          portal_access: boolean; access_changed_at: Ts | null; access_changed_by: Uuid | null;
         } & Stamps,
         "id"
       >;
@@ -235,6 +237,13 @@ export interface Database {
           old_data: Json | null; new_data: Json | null; created_at: Ts;
         },
         "action"
+      >;
+      login_events: Table<
+        {
+          id: number; profile_id: Uuid | null; email: string | null; event: LoginEventType; method: string | null; detail: string | null;
+          actor_id: Uuid | null; ip: string | null; user_agent: string | null; created_at: Ts;
+        },
+        "event"
       >;
       rate_limits: Table<{ key: string; window_start: Ts; hits: number }, "key" | "window_start">;
     };

@@ -1,6 +1,6 @@
 import type { Database } from "./database.types";
 
-export type { Database, Json, UserRole } from "./database.types";
+export type { Database, Json, LoginEventType, UserRole } from "./database.types";
 
 type Tables = Database["public"]["Tables"];
 export type Row<T extends keyof Tables> = Tables[T]["Row"];

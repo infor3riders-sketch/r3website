@@ -1,17 +1,18 @@
 import Link from "next/link";
-import { Handshake, History, Images, Newspaper, Settings2, ShieldCheck, Tags, Users } from "lucide-react";
+import { Activity, Handshake, History, Images, Newspaper, Settings2, ShieldCheck, Tags, Users } from "lucide-react";
 
 export const metadata = { title: "Admin" };
 
 const TOOLS = [
-  { href: "/admin/members", icon: Users, title: "Members & roles", text: "Invite members, change roles and status." },
+  { href: "/admin/members", icon: Users, title: "Members & roles", text: "Invite members, change roles and status, turn portal access on or off." },
   { href: "/admin/permissions", icon: ShieldCheck, title: "Member permissions", text: "Choose what members can change, or make the portal view only." },
   { href: "/admin/membership-types", icon: Tags, title: "Membership types", text: "Riding Member, Supporter, Volunteer: fees, requirements, benefits." },
   { href: "/admin/settings", icon: Settings2, title: "Site content & settings", text: "About, officers, contact, membership stats, payment instructions." },
   { href: "/admin/news", icon: Newspaper, title: "News", text: "Write and publish news posts." },
   { href: "/admin/gallery", icon: Images, title: "Gallery", text: "Photo albums for the public site." },
   { href: "/admin/sponsors", icon: Handshake, title: "Sponsors & partners", text: "Sponsor logos and links on the Home page." },
-  { href: "/admin/audit", icon: History, title: "Audit log", text: "Who changed what, and data exports." },
+  { href: "/admin/activity", icon: Activity, title: "Login activity", text: "Who signed in and out, with the exact date and time." },
+  { href: "/admin/audit", icon: History, title: "Audit log", text: "Who changed what, printed reports and data exports." },
 ] as const;
 
 export default function AdminHomePage() {

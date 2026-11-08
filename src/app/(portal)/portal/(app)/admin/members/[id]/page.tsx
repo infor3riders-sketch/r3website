@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
-import { MemberForm } from "@/components/portal/admin-forms";
-import { formatDate } from "@/lib/format";
+import { AccessToggle, MemberForm } from "@/components/portal/admin-forms";
+import { requireRole } from "@/lib/auth/session";
+import { formatDate, formatDateTimeFull } from "@/lib/format";
 import { getMember } from "@/server/queries/admin";
+import { listLoginEvents } from "@/server/queries/activity";
 
 export const metadata = { title: "Member" };
 
@@ -19,9 +21,10 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 export default async function AdminMemberPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   if (!z.uuid().safeParse(id).success) notFound();
-  const data = await getMember(id);
+  const [data, me, logins] = await Promise.all([getMember(id), requireRole("admin"), listLoginEvents({ profileId: id, page: 0, pageSize: 5 })]);
   if (!data) notFound();
   const { profile: p, bikes, types } = data;
+  const name = p.full_name ?? p.email ?? "this user";
 
   return (
     <div className="max-w-3xl space-y-6">
@@ -34,7 +37,34 @@ export default async function AdminMemberPage({ params }: { params: Promise<{ id
       </header>
 
       <section className="space-y-3 rounded-lg border border-line bg-panel p-5">
-        <h2 className="text-xl font-semibold uppercase text-gold">Access</h2>
+        <h2 className="text-xl font-semibold uppercase text-gold">Portal access</h2>
+        {p.id === me.id ? (
+          <p className="text-sm text-muted">This is your own account. Another admin would have to turn off your access.</p>
+        ) : (
+          <AccessToggle id={p.id} on={p.portal_access} name={name} />
+        )}
+        <p className="text-xs text-muted">
+          When off, they are signed out and cannot sign in or see anything in the portal. Their records are kept and can be restored by turning access back on.
+          {p.access_changed_at ? ` Last changed ${formatDateTimeFull(p.access_changed_at)}.` : ""}
+        </p>
+        <h3 className="pt-2 text-sm font-semibold uppercase tracking-wider text-muted">Recent sign-ins</h3>
+        {logins.rows.length === 0 ? (
+          <p className="text-sm text-muted">No sign-in activity recorded yet.</p>
+        ) : (
+          <ul className="space-y-1 text-sm">
+            {logins.rows.map((r) => (
+              <li key={r.id} className="flex flex-wrap gap-x-3">
+                <span className="text-muted">{formatDateTimeFull(r.created_at)}</span>
+                <span>{r.label}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+        <Link href={`/admin/activity?member=${p.id}`} className="text-sm text-gold hover:text-gold-hover">All login activity for {name} &rarr;</Link>
+      </section>
+
+      <section className="space-y-3 rounded-lg border border-line bg-panel p-5">
+        <h2 className="text-xl font-semibold uppercase text-gold">Role &amp; membership</h2>
         <MemberForm profile={p} types={types} />
         <p className="text-xs text-muted">You cannot demote or deactivate your own account. Role changes are recorded in the audit log.</p>
       </section>

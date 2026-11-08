@@ -13,6 +13,7 @@ import { fieldErrors } from "@/lib/validators/auth";
 import { albumSchema, inviteSchema, memberUpdateSchema, membershipTypeSchema, newsSchema, sponsorSchema } from "@/lib/validators/admin";
 import { EXT_FOR, sniffImage } from "@/lib/validators/profile";
 import { echoValues, type FormState } from "@/server/form-guard";
+import { logLoginEvent } from "@/server/login-log";
 
 async function admin() {
   try {
@@ -90,6 +91,42 @@ export async function updateMember(_prev: FormState, fd: FormData): Promise<Form
   revalidatePath("/admin/members");
   revalidatePath(`/admin/members/${id}`);
   return { ok: true, message: "Member updated." };
+}
+
+/**
+ * Portal access toggle. Off: the profile flag makes every RLS policy deny (role helpers check it) and the
+ * auth user is banned, so they cannot sign in and their session stops refreshing. On: both are reversed.
+ */
+export async function setPortalAccess(_prev: FormState, fd: FormData): Promise<FormState> {
+  const me = await admin();
+  if (!me) return NOT_AUTH;
+  const parsed = z.object({ id: z.uuid(), access: z.enum(["on", "off"]) }).safeParse({ id: fd.get("id"), access: fd.get("access") });
+  if (!parsed.success) return { error: "Invalid request." };
+  const { id, access } = parsed.data;
+  const enable = access === "on";
+  if (id === me.id && !enable) return { error: "You cannot turn off your own access. Ask another admin." };
+
+  const supabase = await createClient(); // RLS + guard trigger independently require an admin
+  const { data: target, error } = await supabase
+    .from("profiles")
+    .update({ portal_access: enable, access_changed_at: new Date().toISOString(), access_changed_by: me.id })
+    .eq("id", id)
+    .select("id, email")
+    .maybeSingle();
+  if (error || !target) {
+    console.error("access change failed", error);
+    return { error: "Could not change access." };
+  }
+
+  // 100 years ~ permanent. "none" lifts the ban.
+  const ban = await createAdminClient().auth.admin.updateUserById(id, { ban_duration: enable ? "none" : "876000h" });
+  if (ban.error) console.error("auth ban update failed", ban.error);
+
+  await logLoginEvent({ event: enable ? "access_restored" : "access_revoked", profileId: id, email: target.email, actorId: me.id, detail: ban.error ? "Sign-in block not applied; database access still changed" : null });
+  revalidatePath("/admin/members");
+  revalidatePath(`/admin/members/${id}`);
+  revalidatePath("/admin/activity");
+  return { ok: true, message: enable ? "Access turned on." : "Access turned off. They have been signed out." };
 }
 
 export async function inviteMember(_prev: FormState, fd: FormData): Promise<FormState> {

@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { InviteForm } from "@/components/portal/admin-forms";
+import { AccessToggle, InviteForm } from "@/components/portal/admin-forms";
+import { requireRole } from "@/lib/auth/session";
 import { StatusBadge } from "@/components/portal/status-badge";
 import { EmptyState } from "@/components/ui/states";
 import { formatDate } from "@/lib/format";
@@ -14,7 +15,7 @@ export default async function AdminMembersPage({ searchParams }: { searchParams:
   const sp = await searchParams;
   const q = (sp.q ?? "").slice(0, 80);
   const role = ROLES.includes(sp.role as (typeof ROLES)[number]) ? (sp.role as string) : "all";
-  const members = await listMembers({ q, role });
+  const [members, me] = await Promise.all([listMembers({ q, role }), requireRole("admin")]);
 
   return (
     <div className="space-y-6">
@@ -63,13 +64,14 @@ export default async function AdminMembersPage({ searchParams }: { searchParams:
         <EmptyState title="No members found" />
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line">
-          <table className="w-full min-w-[640px] text-left text-sm">
+          <table className="w-full min-w-[720px] text-left text-sm">
             <thead className="bg-panel text-xs uppercase tracking-wider text-muted">
               <tr>
                 <th scope="col" className="px-4 py-3">Member</th>
                 <th scope="col" className="px-4 py-3">Role</th>
                 <th scope="col" className="px-4 py-3">Status</th>
                 <th scope="col" className="px-4 py-3">Since</th>
+                <th scope="col" className="px-4 py-3">Portal access</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
@@ -89,6 +91,16 @@ export default async function AdminMembersPage({ searchParams }: { searchParams:
                     <StatusBadge status={m.status === "active" ? "approved" : m.status === "suspended" ? "rejected" : "expired"} label={m.status} />
                   </td>
                   <td className="px-4 py-3 text-muted">{m.member_since ? formatDate(m.member_since) : "n/a"}</td>
+                  <td className="px-4 py-1">
+                    {m.id === me.id ? (
+                      <span className="text-xs text-muted">You</span>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <AccessToggle id={m.id} on={m.portal_access} name={m.full_name ?? m.email ?? "this user"} compact />
+                        <span className={m.portal_access ? "text-xs text-muted" : "text-xs font-medium text-red-300"}>{m.portal_access ? "On" : "Off"}</span>
+                      </div>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

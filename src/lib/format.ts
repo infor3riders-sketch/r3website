@@ -6,6 +6,10 @@ const phpWhole = new Intl.NumberFormat("en-PH", { style: "currency", currency: "
 const dateFmt = new Intl.DateTimeFormat("en-PH", { dateStyle: "medium", timeZone: TZ });
 const dateTimeFmt = new Intl.DateTimeFormat("en-PH", { dateStyle: "medium", timeStyle: "short", timeZone: TZ });
 const timeFmt = new Intl.DateTimeFormat("en-PH", { timeStyle: "short", timeZone: TZ });
+const fullFmt = new Intl.DateTimeFormat("en-PH", {
+  weekday: "short", year: "numeric", month: "short", day: "numeric",
+  hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true, timeZone: TZ,
+});
 
 export const formatPHP = (amount: number, opts: { whole?: boolean } = {}) =>
   (opts.whole ? phpWhole : php).format(amount);
@@ -19,6 +23,8 @@ function toDate(v: string | Date): Date {
 export const formatDate = (v: string | Date) => dateFmt.format(toDate(v));
 export const formatDateTime = (v: string | Date) => dateTimeFmt.format(toDate(v));
 export const formatTime = (v: string | Date) => timeFmt.format(toDate(v));
+/** Complete date and time to the second, Manila time, e.g. "Sun, Nov 8, 2026, 4:05:09 PM". For logs. */
+export const formatDateTimeFull = (v: string | Date) => fullFmt.format(toDate(v));
 
 /** Whole-percent progress, clamped 0..100. Returns 0 when there is no goal. */
 export function progressPercent(raised: number, goal: number | null | undefined): number {

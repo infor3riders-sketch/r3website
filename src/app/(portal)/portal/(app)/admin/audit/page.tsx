@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { ActivityTabs } from "@/components/portal/activity-tabs";
 import { EmptyState } from "@/components/ui/states";
-import { formatDateTime } from "@/lib/format";
+import { formatDateTimeFull } from "@/lib/format";
 import { changedKeys } from "@/lib/validators/admin";
 import { listAudit, listAuditTables } from "@/server/queries/admin";
 
@@ -19,9 +20,12 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
 
   return (
     <div className="space-y-5">
-      <header>
-        <h1 className="text-3xl font-semibold uppercase">Audit log</h1>
-        <p className="text-sm text-muted">Changes to sensitive records and data exports. Entries cannot be edited. Personal details are minimised in the log.</p>
+      <header className="space-y-3">
+        <div>
+          <h1 className="text-3xl font-semibold uppercase">Audit log</h1>
+          <p className="text-sm text-muted">Who changed what: records, settings, RSVPs, sign-ups, payments, printed reports and data exports. Entries cannot be edited. Personal details are minimised in the log.</p>
+        </div>
+        <ActivityTabs current="changes" />
       </header>
 
       <form className="flex flex-wrap items-end gap-3" role="search">
@@ -40,7 +44,7 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
           <span className="mb-1 block text-muted">Action</span>
           <select name="action" defaultValue={sp.action ?? ""} className="h-11 rounded-md border border-line bg-black/40 px-3 text-white">
             <option value="">All</option>
-            {["insert", "update", "delete", "export_donations"].map((a) => (
+            {["insert", "update", "delete", "export_donations", "print_member_roster", "print_directory_roster", "print_donations"].map((a) => (
               <option key={a} value={a}>
                 {a}
               </option>
@@ -68,7 +72,7 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
             <tbody className="divide-y divide-line">
               {rows.map((r) => (
                 <tr key={r.id} className="align-top">
-                  <td className="whitespace-nowrap px-4 py-2 text-muted">{formatDateTime(r.created_at)}</td>
+                  <td className="whitespace-nowrap px-4 py-2 text-muted">{formatDateTimeFull(r.created_at)}</td>
                   <td className="px-4 py-2">{r.actor}</td>
                   <td className="px-4 py-2">
                     <span className="font-mono text-xs">{r.action}</span> <span className="text-muted">{r.table_name}</span>

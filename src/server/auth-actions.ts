@@ -6,6 +6,7 @@ import { sanitizeNext } from "@/lib/auth/safe-redirect";
 import { allow } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 import { emailOnlySchema, fieldErrors, loginSchema, setPasswordSchema } from "@/lib/validators/auth";
+import { logLoginEvent } from "@/server/login-log";
 
 export interface AuthState {
   error?: string;
@@ -20,12 +21,24 @@ export async function signInWithPassword(_prev: AuthState, formData: FormData): 
   if (!isSupabaseConfigured()) return NOT_CONFIGURED;
   const parsed = loginSchema.safeParse({ email: formData.get("email"), password: formData.get("password") });
   if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error) };
-  if (!(await allow("login", 10, 600))) return TOO_MANY;
+  if (!(await allow("login", 10, 600))) {
+    await logLoginEvent({ event: "login_failed", email: parsed.data.email, method: "password", detail: "Too many attempts" });
+    return TOO_MANY;
+  }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword(parsed.data);
-  // Generic message: do not reveal whether the account exists.
-  if (error) return { error: "Invalid email or password." };
+  const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
+  if (error) {
+    // Tell revoked users why. Trade-off: this reveals that the email has a (revoked) account.
+    if (error.code === "user_banned") {
+      await logLoginEvent({ event: "login_failed", email: parsed.data.email, method: "password", detail: "Access revoked" });
+      return { error: "Your portal access has been turned off. Please contact a club officer." };
+    }
+    await logLoginEvent({ event: "login_failed", email: parsed.data.email, method: "password", detail: "Wrong email or password" });
+    // Generic message: do not reveal whether the account exists.
+    return { error: "Invalid email or password." };
+  }
+  await logLoginEvent({ event: "login", profileId: data.user.id, email: data.user.email, method: "password" });
   redirect(sanitizeNext(formData.get("next")));
 }
 
@@ -79,7 +92,9 @@ export async function setPassword(_prev: AuthState, formData: FormData): Promise
 export async function signOut(): Promise<void> {
   if (isSupabaseConfigured()) {
     const supabase = await createClient();
+    const { data } = await supabase.auth.getUser();
     await supabase.auth.signOut();
+    if (data.user) await logLoginEvent({ event: "logout", profileId: data.user.id, email: data.user.email });
   }
   redirect("/login");
 }

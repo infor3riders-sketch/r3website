@@ -7,7 +7,7 @@ import { hasRole } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
 import type { Row, UserRole } from "@/lib/supabase/types";
 
-export type SessionProfile = Pick<Row<"profiles">, "id" | "email" | "role" | "status" | "full_name" | "road_name" | "avatar_path">;
+export type SessionProfile = Pick<Row<"profiles">, "id" | "email" | "role" | "status" | "full_name" | "road_name" | "avatar_path" | "portal_access">;
 
 export interface Session {
   userId: string;
@@ -27,16 +27,17 @@ export const getSession = cache(async (): Promise<Session | null> => {
   if (error || !data.user) return null;
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, email, role, status, full_name, road_name, avatar_path")
+    .select("id, email, role, status, full_name, road_name, avatar_path, portal_access")
     .eq("id", data.user.id)
     .maybeSingle();
   return { userId: data.user.id, profile };
 });
 
-/** For pages/layouts: redirect to login when signed out. */
+/** For pages/layouts: redirect to login when signed out, and sign out accounts whose access was revoked. */
 export async function requireUser(next?: string): Promise<Session> {
   const session = await getSession();
   if (!session) redirect(next && next !== "/" ? `/login?next=${encodeURIComponent(next)}` : "/login");
+  if (session.profile && !session.profile.portal_access) redirect("/auth/revoked");
   return session;
 }
 
@@ -57,7 +58,7 @@ export async function requireRole(min: UserRole = "member"): Promise<SessionProf
   const session = await getSession();
   if (!session) throw new AuthError("unauthenticated");
   const profile = session.profile;
-  if (!profile || profile.status !== "active") throw new AuthError("inactive");
+  if (!profile || profile.status !== "active" || !profile.portal_access) throw new AuthError("inactive");
   if (!hasRole(profile.role, min)) throw new AuthError("forbidden");
   return profile;
 }

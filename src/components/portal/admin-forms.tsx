@@ -1,13 +1,15 @@
 "use client";
 
 import { useActionState } from "react";
+import { useFormStatus } from "react-dom";
+import { cn } from "@/lib/utils";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { FormFeedback, SubmitButton, type FormStateLike } from "@/components/ui/form-bits";
 import { isoToManilaLocal } from "@/lib/events";
 import type { FieldDef } from "@/lib/settings-schema";
 import type { Row } from "@/lib/supabase/types";
 import { MEMBER_PERMISSIONS, type MemberPermissions } from "@/lib/member-permissions";
-import { inviteMember, saveAlbum, saveMemberPermissions, saveMembershipType, saveNews, saveSetting, saveSponsor, updateMember, uploadAlbumPhoto } from "@/server/admin-actions";
+import { inviteMember, saveAlbum, saveMemberPermissions, setPortalAccess, saveMembershipType, saveNews, saveSetting, saveSponsor, updateMember, uploadAlbumPhoto } from "@/server/admin-actions";
 
 const initial: FormStateLike = {};
 const inv = (s: FormStateLike, k: string) => ({ "aria-invalid": Boolean(s.fieldErrors?.[k]), "aria-describedby": s.fieldErrors?.[k] ? `${k}-msg` : undefined }) as const;
@@ -292,6 +294,42 @@ export function MemberPermissionsForm({ value }: { value: MemberPermissions }) {
       </fieldset>
       <FormFeedback state={state} />
       <SubmitButton pendingText="Saving…">Save permissions</SubmitButton>
+    </form>
+  );
+}
+
+function AccessSwitch({ on, name, compact }: { on: boolean; name: string; compact?: boolean }) {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      role="switch"
+      aria-checked={on}
+      aria-label={`Portal access for ${name}`}
+      disabled={pending}
+      onClick={(e) => {
+        if (on && !window.confirm(`Turn off portal access for ${name}? They will be signed out and unable to sign in until access is turned back on.`)) e.preventDefault();
+      }}
+      className="inline-flex min-h-11 items-center gap-3 rounded-md px-1 text-sm disabled:opacity-60"
+    >
+      <span className={cn("relative inline-flex h-6 w-11 shrink-0 rounded-full border transition-colors", on ? "border-emerald-400 bg-emerald-500/80" : "border-line bg-white/10")}>
+        <span className={cn("absolute top-0.5 h-[18px] w-[18px] rounded-full bg-white shadow transition-all", on ? "left-[22px]" : "left-0.5")} />
+      </span>
+      {compact ? <span className="sr-only">{on ? "On" : "Off"}</span> : <span className={on ? "text-white" : "text-red-300"}>{pending ? "Saving…" : on ? "Access on" : "Access off"}</span>}
+    </button>
+  );
+}
+
+/** Admin toggle: turns a user's portal access on or off (confirm before revoking). */
+export function AccessToggle({ id, on, name, compact = false }: { id: string; on: boolean; name: string; compact?: boolean }) {
+  const [state, action] = useActionState(setPortalAccess, initial);
+  return (
+    <form action={action} className="space-y-1">
+      <input type="hidden" name="id" value={id} />
+      <input type="hidden" name="access" value={on ? "off" : "on"} />
+      <AccessSwitch on={on} name={name} compact={compact} />
+      {state.error ? <p role="alert" className="text-xs text-red-300">{state.error}</p> : null}
+      {!compact && state.ok && state.message ? <p role="status" className="text-xs text-emerald-300">{state.message}</p> : null}
     </form>
   );
 }
